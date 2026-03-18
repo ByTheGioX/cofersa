@@ -87,10 +87,23 @@
     <!-- ── DASHBOARD ── -->
     <section id="dashboard">
       <div class="page-header">
-        <h1>Resumen del Día</h1>
+        <h1 id="dashTitulo">Resumen del Día</h1>
         <div style="display:flex; gap:12px; align-items:center;">
           <button class="btn btn-accent" id="btnEnviarInforme" onclick="enviarInformeGestion()"><i data-lucide="mail"></i> Enviar Informe Diario</button>
           <span id="dbStatus" style="font-size:.75rem; color:var(--muted)">Cargando...</span>
+        </div>
+      </div>
+      <div class="toolbar" style="margin-bottom:20px">
+        <div class="filter-pills">
+          <div class="filter-pill active" onclick="setDashPeriod('today', this)">Hoy</div>
+          <div class="filter-pill" onclick="setDashPeriod('week', this)">Esta semana</div>
+          <div class="filter-pill" onclick="setDashPeriod('month', this)">Este mes</div>
+          <div class="filter-pill" onclick="setDashPeriod('custom', this)">Personalizado</div>
+        </div>
+        <div id="dashCustomRange" style="display:none; gap:8px; align-items:center; flex-wrap:wrap">
+          <input type="date" id="dashFrom" style="padding:6px 10px; border-radius:8px; border:1px solid var(--border); background:var(--surface-2); color:var(--text); font-family:inherit; font-size:0.85rem" onchange="renderDashboard(appData)">
+          <span style="color:var(--muted); font-size:0.8rem">—</span>
+          <input type="date" id="dashTo" style="padding:6px 10px; border-radius:8px; border:1px solid var(--border); background:var(--surface-2); color:var(--text); font-family:inherit; font-size:0.85rem" onchange="renderDashboard(appData)">
         </div>
       </div>
       <div class="dashboard-grid">
@@ -178,7 +191,10 @@
     <section id="incidencias" style="display:none">
       <div class="page-header">
         <h1>Incidencias de Facturas</h1>
-        <button class="btn btn-accent" onclick="openModal('modalIncidencia')"><i data-lucide="plus"></i> Nueva Incidencia</button>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-ghost" onclick="exportCSV('incidencias')" title="Exportar CSV"><i data-lucide="download"></i> CSV</button>
+          <button class="btn btn-accent" onclick="openModal('modalIncidencia')"><i data-lucide="plus"></i> Nueva Incidencia</button>
+        </div>
       </div>
 
       <div class="toolbar">
@@ -221,9 +237,12 @@
           <h1>Centro de Llamadas</h1>
           <p style="color:var(--muted); font-size:0.85rem">Gestione sus cobros de manera masiva o individual.</p>
         </div>
-        <button class="btn btn-accent" onclick="openModal('modalLlamada')" style="box-shadow: 0 4px 15px rgba(0, 212, 255, 0.3);">
-          <i data-lucide="phone-forwarded"></i> Nueva Gestión Manual
-        </button>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-ghost" onclick="exportCSV('llamadas')" title="Exportar CSV"><i data-lucide="download"></i> CSV</button>
+          <button class="btn btn-accent" onclick="openModal('modalLlamada')" style="box-shadow: 0 4px 15px rgba(0, 212, 255, 0.3);">
+            <i data-lucide="phone-forwarded"></i> Nueva Gestión Manual
+          </button>
+        </div>
       </div>
 
       <!-- 🎮 CONSOLA OPERATIVA PRO 🚀 -->
@@ -333,7 +352,10 @@
     <section id="clientes" style="display:none">
       <div class="page-header">
         <h1>Directorio de Clientes</h1>
-        <button class="btn btn-green" onclick="resetModalCliente(); openModal('modalCliente')"><i data-lucide="user-plus"></i> Nuevo Cliente</button>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-ghost" onclick="exportCSV('clientes')" title="Exportar CSV"><i data-lucide="download"></i> CSV</button>
+          <button class="btn btn-green" onclick="resetModalCliente(); openModal('modalCliente')"><i data-lucide="user-plus"></i> Nuevo Cliente</button>
+        </div>
       </div>
 
       <div class="toolbar">
@@ -656,12 +678,7 @@
         </div>
         <div class="form-group">
           <label>Resultado de Llamada</label>
-          <select name="resultado" required>
-            <option value="CONTESTÓ">CONTESTÓ (Gestión exitosa)</option>
-            <option value="NO CONTESTÓ">NO CONTESTÓ</option>
-            <option value="OCUPADO">OCUPADO / EN OTRA LLAMADA</option>
-            <option value="NÚMERO ERRÓNEO">NÚMERO ERRÓNEO</option>
-          </select>
+          <select name="resultado" id="selResultadoLlamada" required></select>
         </div>
         <div class="form-group">
           <label>Notas de la conversación</label>
@@ -718,6 +735,21 @@
     var callSort = { col: 1, dir: 'desc' }; // Por defecto fecha desc
     var pagState = { incidencias: 1, clientes: 1, llamadas: 1 };
     var PAGE_SIZE = 10;
+    var dashState = { period: 'today' };
+    // Lista única de resultados de llamada (usada en formularios y consola)
+    var CALL_RESULTS = [
+      { value: 'CONTESTÓ',        label: 'CONTESTÓ',              cls: 'success' },
+      { value: 'NO CONTESTÓ',     label: 'NO CONTESTÓ',           cls: 'failed'  },
+      { value: 'OCUPADO',         label: 'OCUPADO',               cls: 'warning' },
+      { value: 'NÚMERO ERRÓNEO',  label: 'NÚMERO ERRÓNEO',        cls: 'info'    },
+      { value: 'VOLVER A LLAMAR', label: 'VOLVER A LLAMAR',       cls: 'warning' },
+      { value: 'AGENTE GESTIONA', label: 'AGENTE GESTIONA',       cls: 'info'    },
+      { value: 'NO CONTACTADO',   label: 'NO CONTACTADO',         cls: 'failed'  }
+    ];
+    function callResultCls(res) {
+      var r = CALL_RESULTS.find(function(x) { return x.value === String(res).toUpperCase(); });
+      return r ? r.cls : 'info';
+    }
 
     function doLogin() {
       var email = document.getElementById('loginEmail').value.trim();
@@ -953,7 +985,18 @@
     });
 
     // ═══════ CARGA DE DATOS ═══════
-    window.onload = function() { loadAllData(); };
+    window.onload = function() {
+      // Poblar el select de resultado de llamada con la lista unificada
+      var sel = document.getElementById('selResultadoLlamada');
+      if (sel) {
+        CALL_RESULTS.forEach(function(r) {
+          var opt = document.createElement('option');
+          opt.value = r.value; opt.textContent = r.label;
+          sel.appendChild(opt);
+        });
+      }
+      loadAllData();
+    };
 
     function loadAllData() {
       if (!currentUser) return; // No cargar sin login
@@ -1009,49 +1052,81 @@
     }
 
     // ═══════ DASHBOARD ═══════
-    function renderDashboard(d) {
-      var hoy = new Date().toDateString();
-      var promHoy = d.promesas.filter(function(p) { return p[4] && new Date(p[4]).toDateString() === hoy; }).length;
-      document.getElementById('statPromesasHoy').textContent = promHoy;
+    function setDashPeriod(period, el) {
+      dashState.period = period;
+      el.parentElement.querySelectorAll('.filter-pill').forEach(function(p) { p.classList.remove('active'); });
+      el.classList.add('active');
+      var rangeEl = document.getElementById('dashCustomRange');
+      if (rangeEl) rangeEl.style.display = period === 'custom' ? 'flex' : 'none';
+      renderDashboard(appData);
+    }
 
-      var incPend = d.incidencias.filter(function(i) { return (i[5]||'').toUpperCase() !== 'RESUELTO'; }).length; 
+    function getDashRange() {
+      var now = new Date();
+      var from, to = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+      if (dashState.period === 'today') {
+        from = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      } else if (dashState.period === 'week') {
+        from = new Date(now); from.setDate(from.getDate() - 6); from.setHours(0,0,0,0);
+      } else if (dashState.period === 'month') {
+        from = new Date(now.getFullYear(), now.getMonth(), 1);
+      } else {
+        var f = document.getElementById('dashFrom')?.value;
+        var t = document.getElementById('dashTo')?.value;
+        from = f ? new Date(f + 'T00:00:00') : new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        to   = t ? new Date(t + 'T23:59:59') : to;
+      }
+      return { from: from, to: to };
+    }
+
+    function renderDashboard(d) {
+      var range = getDashRange();
+      var from = range.from, to = range.to;
+      var titles = { today: 'Resumen del Día', week: 'Resumen de la Semana', month: 'Resumen del Mes', custom: 'Resumen Personalizado' };
+      var titleEl = document.getElementById('dashTitulo');
+      if (titleEl) titleEl.textContent = titles[dashState.period] || 'Resumen';
+
+      function inRange(fecha) {
+        var f = fecha instanceof Date ? fecha : robustParseDate(fecha);
+        return f && f >= from && f <= to;
+      }
+
+      // Promesas con fecha prometida en el período
+      var promPeriod = d.promesas.filter(function(p) { return inRange(p[4]); }).length;
+      document.getElementById('statPromesasHoy').textContent = promPeriod;
+
+      // Incidencias pendientes (sin filtro de fecha — siempre total)
+      var incPend = d.incidencias.filter(function(i) { return (i[5]||'').toUpperCase() !== 'RESUELTO'; }).length;
       document.getElementById('statIncPendientes').textContent = incPend;
 
-      var mes = new Date().getMonth(), yr = new Date().getFullYear();
-      var total = d.promesas.filter(function(p) {
-        if (!p[1]) return false;
-        var f = new Date(p[1]);
-        return f.getMonth() === mes && f.getFullYear() === yr;
-      }).reduce(function(s, p) { return s + (Number(p[3]) || 0); }, 0);
+      // Total prometido en el período (por fecha de creación)
+      var total = d.promesas.filter(function(p) { return inRange(p[1]); })
+                            .reduce(function(s, p) { return s + (Number(p[3]) || 0); }, 0);
       document.getElementById('statTotalMes').textContent = fmt(total);
 
+      // Estado de promesas (total sin filtro de fecha)
       document.getElementById('dPendientes').textContent = d.promesas.filter(function(p) { return (p[5]||'').toUpperCase() === 'PENDIENTE'; }).length;
       document.getElementById('dParciales').textContent  = d.promesas.filter(function(p) { return (p[5]||'').toUpperCase() === 'ABONO PARCIAL'; }).length;
       document.getElementById('dCumplidas').textContent  = d.promesas.filter(function(p) { return (p[5]||'').toUpperCase() === 'CUMPLIÓ'; }).length;
 
-      // Stats de Llamadas
+      // Llamadas en el período
       if (d.llamadas) {
-        var hoyStr = new Date().toDateString();
-        var callHoy = d.llamadas.filter(function(c) { 
-          var dc = robustParseDate(c[1]);
-          return dc && dc.toDateString() === hoyStr; 
-        }).length;
-        document.getElementById('statLlamadasHoy').textContent = callHoy;
+        var callsPeriod = d.llamadas.filter(function(c) { return inRange(c[1]); });
+        document.getElementById('statLlamadasHoy').textContent = callsPeriod.length;
 
-        // Efectividad Semanal
-        var unaSemana = new Date(); unaSemana.setDate(unaSemana.getDate() - 7);
-        var callsSem = d.llamadas.filter(function(c) { 
-          var dc = robustParseDate(c[1]);
-          return dc && dc > unaSemana; 
-        });
-        var ok = callsSem.filter(function(c) { return String(c[3]).toUpperCase() === 'CONTESTÓ'; }).length;
-        var totalCalls = callsSem.length || 1;
+        var ok = callsPeriod.filter(function(c) { return String(c[3]).toUpperCase() === 'CONTESTÓ'; }).length;
+        var totalCalls = callsPeriod.length || 1;
         var no = Math.max(0, totalCalls - ok);
-
         document.getElementById('segmentOk').style.width = (ok/totalCalls*100) + '%';
         document.getElementById('segmentNo').style.width = (no/totalCalls*100) + '%';
         document.getElementById('textOk').textContent = 'Contestadas: ' + ok;
         document.getElementById('textNo').textContent = 'No contestadas: ' + no;
+        var lblBar = document.querySelector('.call-summary-card h3');
+        if (lblBar) {
+          var periodoLabels = { today: 'del Día', week: 'Semanal', month: 'Mensual', custom: 'del Período' };
+          lblBar.innerHTML = '<i data-lucide="trending-up" style="width:16px;height:16px"></i> Efectividad Telefónica (' + (periodoLabels[dashState.period]||'') + ')';
+          lucide.createIcons();
+        }
       }
     }
 
@@ -1293,6 +1368,36 @@
     }
 
     // ═══════ RENDER: INCIDENCIAS ═══════
+    // ═══════ EXPORTAR CSV ═══════
+    function exportCSV(tabla) {
+      var rows = [], headers = [], filename = tabla + '.csv';
+      if (tabla === 'incidencias') {
+        headers = ['Cliente','Código','Factura','Monto','Motivo','Estado','Canal','Fecha'];
+        rows = appData.incidencias.map(function(i) {
+          return [clienteName(i[1]), i[1], i[2], i[3], i[4], i[5], i[6], i[8]];
+        });
+      } else if (tabla === 'llamadas') {
+        headers = ['Fecha','Cliente','Código','Resultado','Agente','Notas'];
+        rows = appData.llamadas.map(function(c) {
+          return [c[1], clienteName(c[2]), c[2], c[3], c[4], c[5]];
+        });
+      } else if (tabla === 'clientes') {
+        headers = ['Código','Nombre','Teléfono','Correo'];
+        rows = appData.clientes.map(function(c) { return [c[0], c[1], c[2], c[3]]; });
+      }
+      var csvContent = [headers].concat(rows).map(function(row) {
+        return row.map(function(v) {
+          var val = String(v == null ? '' : v).replace(/"/g, '""');
+          return '"' + val + '"';
+        }).join(',');
+      }).join('\r\n');
+      var blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url; a.download = filename; a.click();
+      setTimeout(function() { URL.revokeObjectURL(url); }, 1000);
+    }
+
     function renderPagBar(containerId, table, totalItems, currentPage, onPageChange) {
       var container = document.getElementById(containerId);
       if (!container) return;
@@ -1325,6 +1430,12 @@
       var btn = document.getElementById('btnSaveCliente');
       btn.innerHTML = '<i data-lucide="user-plus"></i> Guardar Cliente';
       lucide.createIcons();
+    }
+
+    function openEditClienteByCode(codigo) {
+      var c = appData.clientes.find(function(x) { return String(x[0]).toUpperCase() === String(codigo).toUpperCase(); });
+      if (!c) return;
+      openEditCliente(c);
     }
 
     function openEditCliente(c) {
@@ -1589,7 +1700,7 @@
           '<td style="color:var(--muted)">' + esc(c[2] || '—') + '</td>' +
           '<td style="color:var(--muted)">' + esc(c[3] || '—') + '</td>' +
           '<td><div style="display:flex;gap:4px;justify-content:flex-end">' +
-            '<button class="btn-icon" title="Editar" onclick="openEditCliente(' + JSON.stringify(c) + ')"><i data-lucide="edit-3"></i></button>' +
+            '<button class="btn-icon" title="Editar" onclick="openEditClienteByCode(\'' + esc(c[0]) + '\')"><i data-lucide="edit-3"></i></button>' +
             '<button class="btn-icon danger" title="Eliminar" onclick="doDeleteCliente(\'' + esc(c[0]) + '\')"><i data-lucide="trash-2"></i></button>' +
           '</div></td>';
         tbody.appendChild(row);
@@ -1668,10 +1779,7 @@
 
       pageLlamadas.forEach(function(c) {
         var res = String(c[3]).toUpperCase();
-        var statusCls = 'info';
-        if (res === 'CONTESTÓ') statusCls = 'success';
-        else if (res === 'NO CONTESTÓ') statusCls = 'failed';
-        else if (res === 'VOLVER A LLAMAR') statusCls = 'warning';
+        var statusCls = callResultCls(res);
         
         var nombre = clienteName(c[2]);
         var tr = document.createElement('tr');
@@ -1900,35 +2008,88 @@
           [serverFn](fd);
       });
     }
-    setupForm('formCliente',    'addCliente',    'modalCliente',    'btnSaveCliente', 'clientes', 'applyClienteFilters');
-
-    // Override del submit de cliente para soportar modo edición
+    // Handler unificado: crear o editar cliente según el modo activo
     (function() {
       var form = document.getElementById('formCliente');
-      if (!form) return;
+      var btn  = document.getElementById('btnSaveCliente');
+      if (!form || !btn) return;
       form.addEventListener('submit', function(e) {
-        var codigoOrig = document.getElementById('clienteCodigoOriginal').value;
-        if (!codigoOrig) return; // modo crear — setupForm lo maneja
         e.preventDefault();
-        e.stopImmediatePropagation();
-        var btn = document.getElementById('btnSaveCliente');
-        btn.disabled = true;
+        var codigoOrig = document.getElementById('clienteCodigoOriginal').value.trim();
         var fd = {};
         new FormData(form).forEach(function(v, k) { fd[k] = v; });
-        fd.codigoOriginal = codigoOrig;
-        google.script.run.withSuccessHandler(function(r) {
-          btn.disabled = false;
-          if (r && r.success) {
-            var idx = appData.clientes.findIndex(function(x) { return String(x[0]).toUpperCase() === codigoOrig.toUpperCase(); });
-            if (idx !== -1) appData.clientes[idx] = r.data;
-            else appData.clientes.push(r.data);
-            closeModal('modalCliente');
-            applyClienteFilters();
-            toast('Cliente actualizado');
-          } else { toast(r.message || 'Error', 'error'); }
-        }).withFailureHandler(function(err) { btn.disabled = false; toast('Error: ' + err, 'error'); })
-          .updateCliente(fd);
+        if (currentUser) fd.interventor = currentUser.email;
+        btn.disabled = true;
+        if (codigoOrig) {
+          // MODO EDICIÓN
+          fd.codigoOriginal = codigoOrig;
+          google.script.run
+            .withSuccessHandler(function(r) {
+              btn.disabled = false;
+              if (r && r.success) {
+                var idx = appData.clientes.findIndex(function(x) { return String(x[0]).toUpperCase() === codigoOrig.toUpperCase(); });
+                if (idx !== -1) appData.clientes[idx] = r.data;
+                closeModal('modalCliente');
+                applyClienteFilters();
+                toast('Cliente actualizado');
+              } else { toast(r.message || 'Error', 'error'); }
+            })
+            .withFailureHandler(function(err) { btn.disabled = false; toast('Error: ' + err, 'error'); })
+            .updateCliente(fd);
+        } else {
+          // MODO CREAR — verificar duplicados primero
+          var codNorm = String(fd.codigo || '').toUpperCase().trim();
+          var nombreNorm = String(fd.nombre || '').toLowerCase().trim();
+          var dupCodigo  = appData.clientes.find(function(x) { return String(x[0]).toUpperCase() === codNorm; });
+          var dupNombre  = appData.clientes.find(function(x) { return String(x[1]).toLowerCase().trim() === nombreNorm; });
+          if (dupCodigo) {
+            btn.disabled = false;
+            toast('Ya existe un cliente con el código "' + codNorm + '"', 'error');
+            return;
+          }
+          if (dupNombre && !confirm('Ya existe un cliente con el nombre "' + fd.nombre + '". ¿Deseas guardarlo de todas formas?')) {
+            btn.disabled = false;
+            return;
+          }
+          google.script.run
+            .withSuccessHandler(function(r) {
+              btn.disabled = false;
+              if (r && r.success) {
+                appData.clientes.push(r.data);
+                closeModal('modalCliente');
+                applyClienteFilters();
+                toast('Cliente guardado');
+              } else { toast(r.message || 'Error', 'error'); }
+            })
+            .withFailureHandler(function(err) { btn.disabled = false; toast('Error: ' + err, 'error'); })
+            .addCliente(fd);
+        }
       });
+    })();
+    // Validar duplicados en promesas antes de guardar
+    (function() {
+      var form = document.getElementById('formPromesa');
+      if (!form) return;
+      form.addEventListener('submit', function(e) {
+        var codEl = form.querySelector('[name="clienteCod"]') || form.querySelector('#selPromClienteVal');
+        var fechaEl = form.querySelector('[name="fechaPromesa"]') || form.querySelector('input[type="date"]');
+        var cod = codEl ? codEl.value : '';
+        var fecha = fechaEl ? fechaEl.value : '';
+        if (!cod || !fecha) return; // dejar que setupForm muestre la validación
+        var hoy = new Date().toDateString();
+        var dup = appData.promesas.find(function(p) {
+          var mismoCliente = String(p[2]).toUpperCase() === String(cod).toUpperCase();
+          var mismaFecha = p[4] && new Date(p[4]).toDateString() === new Date(fecha).toDateString();
+          var pendiente = (p[5]||'').toUpperCase() !== 'CUMPLIÓ';
+          return mismoCliente && mismaFecha && pendiente;
+        });
+        if (dup) {
+          if (!confirm('Este cliente ya tiene una promesa pendiente para esa fecha. ¿Deseas crear otra de todas formas?')) {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+          }
+        }
+      }, true); // capture=true para que corra antes que setupForm
     })();
     setupForm('formPromesa',    'savePromesa',   'modalPromesa',    'btnSavePromesa', 'promesas', 'applyPromesaFilters');
     // formIncidencia tiene submit custom (soporta correo con imágenes)
