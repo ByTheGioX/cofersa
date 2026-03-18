@@ -1,0 +1,2199 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/svg+xml" id="dynamicFavicon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔵</text></svg>">
+  <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
+  <?!= include('Styles'); ?>
+</head>
+<body>
+
+  <!-- ═══════════ PANTALLA DE LOGIN ═══════════ -->
+  <div id="loginOverlay" class="login-overlay">
+    <div class="login-box">
+      <div class="login-logo">COFERSA</div>
+      <h2>Cobro Flow Pro</h2>
+      <div class="form-group">
+        <label>Correo Electrónico</label>
+        <input type="email" id="loginEmail" placeholder="usuario@empresa.com" required>
+      </div>
+      <div class="form-group">
+        <label>Contraseña</label>
+        <input type="password" id="loginPass" placeholder="••••••••" required>
+      </div>
+      <button class="btn btn-accent btn-full" onclick="doLogin()" style="justify-content:center; padding:16px; font-size:1.1rem">
+        <i data-lucide="log-in"></i> Acceder al Sistema
+      </button>
+      <p id="loginMsg" style="margin-top:20px; font-size:0.85rem; color:var(--red); min-height:1.2rem;"></p>
+      
+      <!-- Panel de Diagnóstico Oculto -->
+      <div id="diagPanel" style="display:none; margin-top:20px; padding:15px; background:rgba(255,255,255,0.05); border-radius:10px; text-align:left; font-size:0.75rem; border:1px solid rgba(255,255,255,0.1)">
+        <h4 style="color:var(--accent); margin-bottom:10px; display:flex; align-items:center; gap:5px"><i data-lucide="activity" style="width:14px"></i> Diagnóstico de Enlace</h4>
+        <div id="diagContent" style="color:var(--muted); line-height:1.4; font-family:monospace; word-break:break-all">Cargando datos del sistema...</div>
+        <button class="btn btn-ghost btn-mini" style="margin-top:10px; width:100%; border:1px solid var(--red); color:var(--red)" onclick="doResetDatabase()">
+          <i data-lucide="refresh-cw"></i> Re-vincular Base de Datos
+        </button>
+      </div>
+
+      <div style="margin-top:25px; display:flex; justify-content:center">
+        <button class="btn btn-ghost btn-mini" onclick="toggleDiag()" style="opacity:0.4">
+          <i data-lucide="wrench"></i> Problemas de acceso?
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════ SIDEBAR ═══════════ -->
+  <div class="sidebar" id="mainSidebar" style="display:none">
+    <div class="sidebar-logo">
+        <div id="imgLogoSidebar" style="font-size: 1.8rem; font-weight: 900; letter-spacing: -1px; color: var(--accent); text-align: center; line-height: 1;">
+          COFERSA
+        </div>
+    </div>
+    <nav>
+      <div class="nav-item active" onclick="showSection('dashboard', this)">
+        <i data-lucide="layout-dashboard"></i> Dashboard
+      </div>
+      <div class="nav-item" onclick="showSection('promesas', this)">
+        <i data-lucide="calendar-check"></i> Promesas Pago
+      </div>
+      <div class="nav-item" onclick="showSection('incidencias', this)">
+        <i data-lucide="alert-circle"></i> Incidencias
+      </div>
+      <div class="nav-item" onclick="showSection('llamadas', this)">
+        <i data-lucide="phone-call"></i> Llamadas
+      </div>
+      <div class="nav-item" onclick="showSection('clientes', this)">
+        <i data-lucide="users"></i> Clientes
+      </div>
+      <div style="margin-top:40px; border-top:1px solid rgba(255,255,255,0.05); padding-top:10px">
+        <div class="nav-item danger" onclick="doLogout()">
+          <i data-lucide="log-out"></i> Cerrar Sesión
+        </div>
+      </div>
+    </nav>
+      
+    <!-- BOTÓN DE TEMA -->
+    <button class="theme-toggle-btn" id="btnThemeToggle" onclick="toggleTheme()">
+      <i data-lucide="sun"></i> <span id="lblTheme">Modo Claro</span>
+    </button>
+  </div>
+
+  <!-- ═══════════ MAIN ═══════════ -->
+  <div class="main-wrapper">
+
+    <!-- ── DASHBOARD ── -->
+    <section id="dashboard">
+      <div class="page-header">
+        <h1>Resumen del Día</h1>
+        <div style="display:flex; gap:12px; align-items:center;">
+          <button class="btn btn-accent" id="btnEnviarInforme" onclick="enviarInformeGestion()"><i data-lucide="mail"></i> Enviar Informe Diario</button>
+          <span id="dbStatus" style="font-size:.75rem; color:var(--muted)">Cargando...</span>
+        </div>
+      </div>
+      <div class="dashboard-grid">
+        <div class="stat-card">
+          <div class="label">Promesas para Hoy</div>
+          <div class="value" id="statPromesasHoy" style="color:var(--accent)">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">Incidencias Pendientes</div>
+          <div class="value" id="statIncPendientes" style="color:var(--red)">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">Llamadas Hoy</div>
+          <div class="value" id="statLlamadasHoy" style="color:#ff9f40">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">Total Prometido (Mes)</div>
+          <div class="value" id="statTotalMes" style="color:var(--green); font-size:2rem">—</div>
+        </div>
+      </div>
+
+      <div class="call-summary-card" style="margin-top:20px; background:var(--surface-2); padding:18px; border-radius:12px; border:1px solid var(--border);">
+        <h3 style="font-size:0.85rem; margin-bottom:12px; color:var(--muted); display:flex; align-items:center; gap:8px;">
+          <i data-lucide="trending-up" style="width:16px;height:16px"></i> Efectividad Telefónica (Semanal)
+        </h3>
+        <div class="call-stats-bar" id="callStatsBar">
+          <div id="segmentOk" class="stat-segment ok" style="width:0%"></div>
+          <div id="segmentNo" class="stat-segment no" style="width:0%"></div>
+        </div>
+        <div style="display:flex; justify-content:space-between; font-size:0.75rem; margin-top:6px; font-weight:600">
+          <span id="textOk" style="color:#3fb950">Contestadas: 0</span>
+          <span id="textNo" style="color:#f85149">No contestadas: 0</span>
+        </div>
+      </div>
+      <div class="dashboard-grid">
+        <div class="stat-card" style="grid-column: 1/-1">
+          <div class="label" style="margin-bottom:18px">Estado de Promesas</div>
+          <div style="display:flex; gap:30px">
+            <div><div style="font-size:1.6rem; font-weight:700; color:var(--yellow)" id="dPendientes">—</div><div style="font-size:.75rem; color:var(--muted); margin-top:4px">PENDIENTES</div></div>
+            <div><div style="font-size:1.6rem; font-weight:700; color:var(--accent)" id="dParciales">—</div><div style="font-size:.75rem; color:var(--muted); margin-top:4px">ABONO PARCIAL</div></div>
+            <div><div style="font-size:1.6rem; font-weight:700; color:var(--green)" id="dCumplidas">—</div><div style="font-size:.75rem; color:var(--muted); margin-top:4px">CUMPLIDAS</div></div>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ── PROMESAS KANBAN ── -->
+    <section id="promesas" style="display:none">
+      <div class="page-header">
+        <h1>Promesas de Pago</h1>
+        <button class="btn btn-accent" onclick="openModal('modalPromesa')"><i data-lucide="plus"></i> Nueva Promesa</button>
+      </div>
+
+      <div class="toolbar">
+        <div class="search-box">
+          <i data-lucide="search"></i>
+          <input type="text" id="searchPromesas" placeholder="Buscar por cliente..." oninput="applyPromesaFilters()">
+        </div>
+        <div class="filter-pills">
+          <div class="filter-pill active" onclick="setPromesaFilter('TODOS', this)">Todos</div>
+          <div class="filter-pill" onclick="setPromesaFilter('PENDIENTE', this)">Pendientes</div>
+          <div class="filter-pill" onclick="setPromesaFilter('ABONO PARCIAL', this)">Abono Parcial</div>
+          <div class="filter-pill" onclick="setPromesaFilter('CUMPLIÓ', this)">Cumplió</div>
+        </div>
+      </div>
+
+      <div class="kanban-container">
+        <div class="kanban-column" id="col-pendiente">
+          <div class="kanban-column-header"><span>Pendientes</span><span class="badge" id="badge-pendiente">0</span></div>
+          <div class="cards-list" id="list-pendiente"></div>
+        </div>
+        <div class="kanban-column" id="col-parcial">
+          <div class="kanban-column-header"><span>Abono Parcial</span><span class="badge" id="badge-parcial">0</span></div>
+          <div class="cards-list" id="list-parcial"></div>
+        </div>
+        <div class="kanban-column" id="col-cumplio">
+          <div class="kanban-column-header"><span>Cumplió</span><span class="badge" id="badge-cumplio">0</span></div>
+          <div class="cards-list" id="list-cumplio"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── INCIDENCIAS ── -->
+    <section id="incidencias" style="display:none">
+      <div class="page-header">
+        <h1>Incidencias de Facturas</h1>
+        <button class="btn btn-accent" onclick="openModal('modalIncidencia')"><i data-lucide="plus"></i> Nueva Incidencia</button>
+      </div>
+
+      <div class="toolbar">
+        <div class="search-box">
+          <i data-lucide="search"></i>
+          <input type="text" id="searchIncidencias" placeholder="Buscar por cliente o factura..." oninput="applyIncidenciaFilters()">
+        </div>
+        <div class="filter-pills">
+          <div class="filter-pill active" onclick="setIncidenciaFilter('TODOS', this)">Todos</div>
+          <div class="filter-pill" onclick="setIncidenciaFilter('PENDIENTE', this)">Pendientes</div>
+          <div class="filter-pill" onclick="setIncidenciaFilter('RESUELTO', this)">Resueltos</div>
+        </div>
+      </div>
+
+      <div class="table-card">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Cliente</th>
+              <th>Factura</th>
+              <th>Monto</th>
+              <th>Motivo</th>
+              <th>Canal</th>
+              <th>Seguimiento</th>
+              <th>Estado</th>
+              <th>Link</th>
+              <th width="40"><i data-lucide="more-horizontal"></i></th>
+            </tr>
+          </thead>
+          <tbody id="tbIncidencias"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ── LLAMADAS ── -->
+    <section id="llamadas" style="display:none">
+      <div class="page-header">
+        <div style="display:flex; flex-direction:column; gap:4px">
+          <h1>Centro de Llamadas</h1>
+          <p style="color:var(--muted); font-size:0.85rem">Gestione sus cobros de manera masiva o individual.</p>
+        </div>
+        <button class="btn btn-accent" onclick="openModal('modalLlamada')" style="box-shadow: 0 4px 15px rgba(0, 212, 255, 0.3);">
+          <i data-lucide="phone-forwarded"></i> Nueva Gestión Manual
+        </button>
+      </div>
+
+      <!-- 🎮 CONSOLA OPERATIVA PRO 🚀 -->
+      <div class="stat-card operative-console" style="background: linear-gradient(145deg, var(--surface-2) 0%, rgba(0, 212, 255, 0.05) 100%); border: 1px solid rgba(0, 212, 255, 0.15); padding:24px; margin-bottom:32px; border-radius:20px; position:relative; overflow:hidden;">
+        <div style="position:absolute; top:-20px; right:-20px; opacity:0.03; transform: rotate(15deg);">
+          <i data-lucide="zap" style="width:150px; height:150px; color:var(--accent)"></i>
+        </div>
+
+        <div class="label" style="margin-bottom:24px; display:flex; align-items:center; justify-content:space-between; color:var(--text); position:relative; z-index:1">
+          <div style="display:flex; align-items:center; gap:12px; font-size:1.1rem; font-weight:800; color:var(--accent)">
+            <i data-lucide="zap"></i> Consola Operativa en Masa
+          </div>
+          <div style="display:flex; gap:12px;">
+            <button class="btn btn-ghost btn-sm" onclick="toggleQuickLoader()" title="Cargar lista masiva" style="background:rgba(255,255,255,0.03)">
+              <i data-lucide="list-plus"></i> <span class="hide-mobile">Cargar Lista</span>
+            </button>
+            <button class="btn btn-ghost btn-sm" onclick="resetQuickList()" title="Resetear lista" style="background:rgba(255,255,255,0.03)">
+              <i data-lucide="rotate-ccw"></i>
+            </button>
+          </div>
+        </div>
+        
+        <div id="quickLoaderArea" style="display:none; margin-bottom:24px; background:rgba(0,0,0,0.2); padding:20px; border-radius:14px; border:1px solid rgba(255,255,255,0.05); animation: fadeIn 0.3s ease;">
+          <p style="font-size:0.85rem; color:var(--muted); margin-bottom:12px; font-weight:500">Pega los códigos o nombres para iniciar la jornada:</p>
+          <textarea id="quickMassText" style="width:100%; min-height:120px; background:var(--surface-1); border:1px solid var(--border); color:var(--text); padding:16px; border-radius:10px; font-family:inherit; font-size:0.95rem; resize:vertical" placeholder="Ejemplo:&#10;C001&#10;Distribuidora El Sol&#10;..."></textarea>
+          <button class="btn btn-accent" style="margin-top:16px; width:100%; justify-content:center; padding:14px; font-weight:700" onclick="processQuickMassLoad()">
+            <i data-lucide="play"></i> Iniciar Sesión de Cobro
+          </button>
+        </div>
+
+        <div class="session-config-bar" id="sessionConfigBar">
+          <div style="display:flex; gap:12px; width:100%; flex-wrap:wrap">
+            <div>
+              <label>Fecha Global Promesa</label>
+              <input type="date" id="sessionDate" class="session-input" title="Si se define, las promesas se guardan al instante con esta fecha">
+            </div>
+            <div>
+              <label>Monto Predet.</label>
+              <input type="number" id="sessionAmount" class="session-input" placeholder="Opcional">
+            </div>
+            <div style="flex:1; min-width:300px">
+              <label>Notas de Sesión (Auto)</label>
+              <input type="text" id="sessionNote" class="session-input note" style="width:100%" placeholder="Ej: Se envió aviso de cobro...">
+            </div>
+            <div style="display:flex; justify-content:flex-end; align-self:flex-end">
+              <button class="btn-mini" onclick="clearSessionConfig()" title="Limpiar Configuración" style="height:36px; padding:0 12px; font-size:0.7rem"><i data-lucide="eraser"></i> Limpiar</button>
+            </div>
+          </div>
+          
+          <!-- 📝 FILA DE NOTAS RÁPIDAS ⚡ -->
+          <div style="width:100%; margin-top:12px; border-top:1px solid rgba(255,255,255,0.05); padding-top:12px; display:flex; align-items:center; gap:8px; flex-wrap:wrap">
+            <span style="font-size:0.65rem; color:var(--muted); font-weight:800; text-transform:uppercase; letter-spacing:1px; margin-right:4px">Notas Rápidas:</span>
+            <button class="btn-pill" onclick="setQuickNote('No contestó, se envió correo')">No contestó + Correo</button>
+            <button class="btn-pill" onclick="setQuickNote('Llamar más tarde')">Llamar tarde</button>
+            <button class="btn-pill" onclick="setQuickNote('Promesa confirmada')">Promesa OK</button>
+            <button class="btn-pill" onclick="setQuickNote('Cliente no se encuentra')">No ubicado</button>
+            <button class="btn-pill" onclick="setQuickNote('Aceptó convenio')">Aceptó Convenio</button>
+            <button class="btn-pill" onclick="setQuickNote('Volver a llamar mañana')">Llamar mañana</button>
+          </div>
+        </div>
+
+        <div id="quickActionList" style="display:flex; flex-direction:column; gap:12px; min-height:120px; max-height:450px; overflow-y:auto; padding-right:12px; position:relative; z-index:1">
+          <div style="padding:60px; text-align:center; color:var(--muted)">
+            <i data-lucide="inbox" style="width:32px; height:32px; margin-bottom:12px; opacity:0.3"></i>
+            <p>Esperando lista para procesar...</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 📂 HISTORIAL DE GESTIÓN 📂 -->
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:20px">
+        <div style="display:flex; align-items:center; gap:15px">
+          <div class="label" style="font-size:0.9rem; color:var(--muted); text-transform:uppercase; letter-spacing:1.5px; display:flex; align-items:center; gap:10px; font-weight:700">
+            <i data-lucide="history" style="width:16px"></i> Historial de Gestiones
+          </div>
+          <span id="lastSyncLabel" style="font-size:0.7rem; color:var(--muted); font-weight:600; background:rgba(255,255,255,0.03); padding:4px 10px; border-radius:30px; border:1px solid rgba(255,255,255,0.05)">Última sinc: --:--</span>
+          <button class="btn-mini" id="btnSync" onclick="loadAllData()" title="Sincronizar ahora" style="border-radius:50%; width:32px; height:32px">
+            <i data-lucide="refresh-cw" style="width:14px"></i>
+          </button>
+        </div>
+        <div class="search-box" style="width:300px; background:var(--surface-2)">
+          <i data-lucide="search"></i>
+          <input type="text" id="searchLlamadas" placeholder="Filtrar por resultado o cliente..." oninput="applyLlamadaFilters()">
+        </div>
+      </div>
+
+      <div class="history-table-container">
+        <table class="history-table">
+          <thead>
+            <tr id="historyTableHeader">
+              <th>Fecha y Hora</th>
+              <th>Cliente</th>
+              <th>Resultado</th>
+              <th>Notas de Gestión</th>
+              <th width="100" style="text-align:right">Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="callTableBody">
+            <!-- Historial vía JS -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ── CLIENTES ── -->
+    <section id="clientes" style="display:none">
+      <div class="page-header">
+        <h1>Directorio de Clientes</h1>
+        <button class="btn btn-green" onclick="openModal('modalCliente')"><i data-lucide="user-plus"></i> Nuevo Cliente</button>
+      </div>
+
+      <div class="toolbar">
+        <div class="search-box">
+          <i data-lucide="search"></i>
+          <input type="text" id="searchClientes" placeholder="Buscar cliente..." oninput="applyClienteFilters()">
+        </div>
+      </div>
+
+      <div class="table-card">
+        <table><thead><tr>
+          <th>Código</th><th>Nombre</th><th>Teléfono</th><th>Correo</th>
+        </tr></thead><tbody id="tbodyClientes"></tbody></table>
+      </div>
+    </section>
+
+  </div><!-- /main-wrapper -->
+
+  <!-- ═══════════ MODALES ═══════════ -->
+
+  <!-- Modal: Nueva Promesa -->
+  <div class="modal-overlay" id="modalPromesa">
+    <div class="modal-box">
+      <h2 class="modal-title">Nueva Promesa de Pago</h2>
+      <form id="formPromesa">
+        <div class="form-group">
+          <label>Cliente</label>
+          <div class="search-select-container">
+            <input type="text" class="search-select-input" id="searchPromCliente" placeholder="Escribe nombre o código..." oninput="handleSearchSelect(this, 'selPromClienteVal')">
+            <input type="hidden" name="clienteCod" id="selPromClienteVal" required>
+            <div class="search-results" id="results-searchPromCliente"></div>
+          </div>
+        </div>
+        <div class="form-group"><label>Monto (₡)</label><input type="number" name="monto" min="0" step="0.01" placeholder="0.00" required></div>
+        <div class="form-group"><label>Fecha Prometida</label><input type="date" name="fechaPromesa" required></div>
+        <div class="form-group"><label>Notas</label><textarea name="notas" placeholder="Detalles adicionales..."></textarea></div>
+        <div class="form-actions">
+          <button type="submit" class="btn btn-accent btn-full" id="btnSavePromesa"><i data-lucide="save"></i> Guardar Promesa</button>
+          <button type="button" class="btn btn-ghost btn-full" onclick="closeModal('modalPromesa')">Cancelar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Nueva Incidencia -->
+  <div class="modal-overlay" id="modalIncidencia">
+    <div class="modal-box">
+      <h2 class="modal-title">Registrar Incidencia</h2>
+      <form id="formIncidencia">
+        <div class="form-group"><label>Factura #</label><input type="text" name="factura" placeholder="Ej: F-00123" required></div>
+        <div class="form-group">
+          <label>Cliente</label>
+          <div class="search-select-container">
+            <input type="text" class="search-select-input" id="searchIncCliente" placeholder="Escribe nombre o código..." oninput="handleSearchSelect(this, 'selIncClienteVal')">
+            <input type="hidden" name="clienteCod" id="selIncClienteVal" required>
+            <div class="search-results" id="results-searchIncCliente"></div>
+          </div>
+        </div>
+        <div class="form-group"><label>Monto (₡)</label><input type="number" name="monto" min="0" step="0.01" placeholder="0.00" required></div>
+        <div class="form-group">
+          <label>Canal de Seguimiento</label>
+          <select name="canal" required>
+            <option value="">Seleccione un canal...</option>
+            <option value="WhatsApp">WhatsApp</option>
+            <option value="Correo">Correo Electrónico</option>
+            <option value="Llamada">Llamada Telefónica</option>
+            <option value="No definido">No definido</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Motivo</label><input type="text" name="motivo" placeholder="Ej: Devolución" required></div>
+        <div class="form-group"><label>Link Gmail</label><input type="url" name="linkGmail" placeholder="https://mail.google.com/..."></div>
+        <div class="form-actions">
+          <button type="submit" class="btn btn-accent btn-full" id="btnSaveInc"><i data-lucide="save"></i> Guardar Incidencia</button>
+          <button type="button" class="btn btn-ghost btn-full" onclick="closeModal('modalIncidencia')">Cancelar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Nuevo Cliente -->
+  <div class="modal-overlay" id="modalCliente">
+    <div class="modal-box">
+      <h2 class="modal-title">Nuevo Cliente</h2>
+      <form id="formCliente">
+        <div class="form-group"><label>Código</label><input type="text" name="codigo" placeholder="Ej: C001" required></div>
+        <div class="form-group"><label>Nombre</label><input type="text" name="nombre" placeholder="Nombre completo" required></div>
+        <div class="form-group"><label>Teléfono</label><input type="tel" name="telefono" placeholder="8888-8888"></div>
+        <div class="form-group"><label>Correo</label><input type="email" name="correo" placeholder="correo@empresa.com"></div>
+        <div class="form-actions">
+          <button type="submit" class="btn btn-green btn-full" id="btnSaveCliente"><i data-lucide="user-plus"></i> Guardar Cliente</button>
+          <button type="button" class="btn btn-ghost btn-full" onclick="closeModal('modalCliente')">Cancelar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Detalle de Promesa -->
+  <div class="modal-overlay" id="modalDetPromesa">
+    <div class="modal-box">
+      <h2 class="modal-title">Detalle de Promesa</h2>
+      <div class="detail-grid" id="detPromGrid"></div>
+      <hr class="divider">
+      <div class="form-group">
+        <label>Cambiar Estado</label>
+        <select id="detPromEstado">
+          <option value="PENDIENTE">Pendiente</option>
+          <option value="ABONO PARCIAL">Abono Parcial</option>
+          <option value="CUMPLIÓ">Cumplió</option>
+        </select>
+      </div>
+      <div class="form-actions-row">
+        <button class="btn btn-accent" id="btnUpdateProm" onclick="doUpdatePromesa()"><i data-lucide="refresh-cw"></i> Actualizar</button>
+        <button class="btn btn-danger" id="btnDeleteProm" onclick="doDeletePromesa()"><i data-lucide="trash-2"></i> Eliminar</button>
+      </div>
+      <div class="form-actions" style="margin-top:12px">
+        <button type="button" class="btn btn-ghost btn-full" onclick="closeModal('modalDetPromesa')">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Detalle / Edición de Incidencia -->
+  <div class="modal-overlay" id="modalDetIncidencia">
+    <div class="modal-box">
+      <h3 class="modal-title">Detalles de la Incidencia</h3>
+      <input type="hidden" id="incFacturaOriginal">
+      <div class="form-group">
+        <label>Cliente</label>
+        <div class="search-select-container">
+          <input type="text" class="search-select-input" id="searchDetIncCliente" placeholder="Buscar cliente..." oninput="handleSearchSelect(this, 'selDetIncClienteVal')">
+          <input type="hidden" id="selDetIncClienteVal">
+          <div class="search-results" id="results-searchDetIncCliente"></div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Factura (# o ID)</label>
+        <input type="text" id="incFactura" placeholder="Ej: 810645">
+      </div>
+      <div class="form-group">
+        <label>Monto</label>
+        <input type="number" id="incMonto" placeholder="Ej: 50000">
+      </div>
+      <div class="form-group">
+        <label>Canal de Seguimiento</label>
+        <select id="incCanal">
+          <option value="No definido">Seleccione un canal...</option>
+          <option value="WhatsApp">WhatsApp</option>
+          <option value="Correo">Correo Electrónico</option>
+          <option value="Llamada">Llamada Telefónica</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Motivo</label>
+        <textarea id="incMotivo" placeholder="Ej: Producto dañado"></textarea>
+      </div>
+      <div class="form-group">
+        <label>Estado</label>
+        <select id="incEstado" onchange="toggleIncLinkField()">
+          <option value="PENDIENTE">Pendiente</option>
+          <option value="RESUELTO">Resuelto</option>
+        </select>
+      </div>
+      <div class="form-group" id="groupIncLink">
+        <label>Enlace de Seguimiento (Se genera automáticamente al enviar correo)</label>
+        <input type="text" id="incLink" placeholder="URL al hilo de correo / ticket">
+      </div>
+
+      <!-- 📧 SECCIÓN DE CORREO PRO 💎 -->
+      <div class="email-pro-section" style="margin-top:20px; border-top:1px dashed var(--border); padding-top:20px;">
+        <label style="display:flex; align-items:center; gap:8px; cursor:pointer; margin-bottom:15px; background:rgba(255,255,255,0.03); padding:10px; border-radius:8px">
+          <input type="checkbox" id="incSendEmail" onchange="toggleEmailPanel(this.checked)" style="width:18px; height:18px">
+          <span style="font-weight:700; color:var(--accent)">¿Enviar correo de seguimiento? 📧</span>
+        </label>
+
+        <div id="emailPanel" style="display:none; animation: slideDown 0.3s ease;">
+          <div class="form-group">
+            <label>Destinatario(s)</label>
+            <input type="text" id="incMailTo" placeholder="ejemplo@correo.com; jefe@correo.com">
+          </div>
+          <div class="form-group">
+            <label>Asunto</label>
+            <input type="text" id="incMailSubject" placeholder="Seguimiento de Incidencia">
+          </div>
+          <div class="form-group">
+            <label>Mensaje (Usa etiquetas dinámicas)</label>
+            <div class="email-toolbar" style="margin-bottom:8px; display:flex; gap:6px; flex-wrap:wrap">
+              <button class="btn-mini" onclick="insertTag('{{CLIENTE}}')" title="Insertar nombre del cliente" style="background:rgba(0,212,255,0.1); color:var(--accent); border:none">👤 Cliente</button>
+              <button class="btn-mini" onclick="insertTag('{{FACTURA}}')" title="Insertar número de factura" style="background:rgba(255,159,64,0.1); color:#ff9f40; border:none">📄 Factura</button>
+              <button class="btn-mini" onclick="insertTag('{{FECHA}}')" title="Insertar fecha actual" style="background:rgba(168,85,247,0.1); color:#a855f7; border:none">📅 Fecha</button>
+            </div>
+            <textarea id="incMailBody" style="min-height:150px; font-family: 'Inter', sans-serif;" placeholder="Escribe el cuerpo del correo aquí..."></textarea>
+          </div>
+          <div class="form-group">
+            <label>Adjuntar Archivo (Opcional)</label>
+            <input type="file" id="incMailFile" class="session-input" style="padding:8px">
+          </div>
+        </div>
+      </div>
+
+      <div class="form-actions-row">
+        <button class="btn btn-accent" id="btnSaveIncEdit" onclick="updateIncidenciaCompleta()">Guardar Cambios</button>
+        <button class="btn btn-ghost" onclick="closeModal('modalDetIncidencia')">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Nueva Llamada -->
+  <div class="modal-overlay" id="modalLlamada">
+    <div class="modal-box">
+      <h2 class="modal-title">Registrar Gestión Telefónica</h2>
+      <form id="formLlamada">
+        <div class="form-group">
+          <label>Cliente</label>
+          <div class="search-select-container">
+            <input type="text" class="search-select-input" id="searchCallCliente" placeholder="Buscar cliente..." oninput="handleSearchSelect(this, 'selCallClienteVal')">
+            <input type="hidden" name="clienteCod" id="selCallClienteVal" required>
+            <div class="search-results" id="results-searchCallCliente"></div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Resultado de Llamada</label>
+          <select name="resultado" required>
+            <option value="CONTESTÓ">CONTESTÓ (Gestión exitosa)</option>
+            <option value="NO CONTESTÓ">NO CONTESTÓ</option>
+            <option value="OCUPADO">OCUPADO / EN OTRA LLAMADA</option>
+            <option value="NÚMERO ERRÓNEO">NÚMERO ERRÓNEO</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Notas de la conversación</label>
+          <textarea name="notas" placeholder="Ej: Me dijo que paga mañana sin falta..."></textarea>
+        </div>
+        <div class="form-actions-row">
+          <button type="submit" class="btn btn-accent" id="btnSaveCall"><i data-lucide="save"></i> Registrar</button>
+          <button type="button" class="btn btn-ghost" onclick="closeModal('modalLlamada')">Cancelar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ══════════ BOTÓN FLOTANTE NLP ══════════ -->
+  <button class="floating-btn" onclick="toggleFloatingChat()" title="Asistente Rápido">
+    <i data-lucide="wand-2"></i>
+  </button>
+
+  <!-- ══════════ CHAT FLOTANTE NLP V3 ══════════ -->
+  <div id="floatingChat" class="floating-chat">
+    <div class="chat-header">
+      <h3><i data-lucide="wand-2" style="color:var(--accent)"></i> Asistente Rápido</h3>
+      <div style="display:flex; gap:8px;">
+        <button onclick="toggleExpandChat()" title="Expandir/Contraer"><i data-lucide="maximize-2"></i></button>
+        <button onclick="toggleFloatingChat()" title="Cerrar"><i data-lucide="x"></i></button>
+      </div>
+    </div>
+    
+    <div class="chat-body">
+      <p style="font-size:.8rem; color:var(--muted); margin-bottom:4px; line-height: 1.4;">
+        Ejemplo: <strong style="color:var(--text)">incidencia jima 810645 whatsapp factura no llego</strong>
+      </p>
+      <textarea id="magicInput" class="magic-textarea" placeholder="Escribe aquí tu solicitud..." oninput="processMagicInput()"></textarea>
+      <div id="magicCardsContainer" class="magic-cards-container"></div>
+    </div>
+    
+    <div style="padding: 12px 16px; border-top: 1px solid var(--border); background: var(--surface-2);">
+      <button class="btn btn-accent" style="width:100%; justify-content:center" id="btnSaveMagic" onclick="saveBatch()" disabled>
+        <i data-lucide="send"></i> Guardar Todo
+      </button>
+    </div>
+  </div>
+
+  <!-- Toast container -->
+  <div id="toastContainer"></div>
+
+  <!-- ═══════════ JAVASCRIPT ═══════════ -->
+  <script>
+    var currentUser = null;
+    var appData = { promesas: [], incidencias: [], clientes: [], llamadas: [] };
+    var activePromesaId = null;
+    var promesaFilterState = 'TODOS';
+    var incidenciaFilterState = 'TODOS';
+    var callSort = { col: 1, dir: 'desc' }; // Por defecto fecha desc
+
+    function doLogin() {
+      var email = document.getElementById('loginEmail').value.trim();
+      var pass = document.getElementById('loginPass').value.trim();
+      var msg = document.getElementById('loginMsg');
+      if (!email || !pass) { msg.innerText = 'Completa todos los campos'; return; }
+      
+      msg.style.color = 'var(--accent)';
+      msg.innerHTML = '<i data-lucide="loader" class="lucide-spin"></i> Verificando credenciales...';
+      lucide.createIcons();
+      document.querySelector('#loginOverlay .btn').disabled = true;
+      document.querySelector('#loginOverlay .btn').innerHTML = '<i data-lucide="loader" class="lucide-spin"></i> Procesando...';
+      lucide.createIcons();
+      
+      google.script.run
+        .withFailureHandler(function(err) {
+          msg.style.color = 'var(--red)';
+          msg.innerHTML = '<i data-lucide="alert-triangle" style="width:14px"></i> Error de red/permisos: No tienes acceso al script o a la hoja.';
+          lucide.createIcons();
+          document.querySelector('#loginOverlay .btn').disabled = false;
+          document.querySelector('#loginOverlay .btn').innerHTML = '<i data-lucide="log-in"></i> Acceder al Sistema';
+          lucide.createIcons();
+          console.error('Failure in loginUser:', err);
+        })
+        .withSuccessHandler(function(r) {
+          if (r.success) {
+            currentUser = r.user;
+            localStorage.setItem('cobroFlowUser', JSON.stringify(currentUser));
+            document.getElementById('loginOverlay').style.display = 'none';
+            document.getElementById('mainSidebar').style.display = 'flex';
+            loadAllData();
+            toast('Bienvenido, ' + currentUser.nombre);
+          } else {
+            msg.style.color = 'var(--red)';
+            msg.innerHTML = '<i data-lucide="alert-triangle" style="width:14px"></i> ' + r.message;
+            lucide.createIcons();
+            document.querySelector('#loginOverlay .btn').disabled = false;
+            document.querySelector('#loginOverlay .btn').innerHTML = '<i data-lucide="log-in"></i> Acceder al Sistema';
+            lucide.createIcons();
+          }
+        }).loginUser(email, pass);
+    }
+
+    function doLogout() {
+      localStorage.removeItem('cobroFlowUser');
+      location.reload(); 
+    }
+
+    // Auto-login si hay sesión
+    window.addEventListener('DOMContentLoaded', function() {
+      var saved = localStorage.getItem('cobroFlowUser');
+      if (saved) {
+        currentUser = JSON.parse(saved);
+        document.getElementById('loginOverlay').style.display = 'none';
+        document.getElementById('mainSidebar').style.display = 'flex';
+        loadAllData();
+      }
+      lucide.createIcons();
+    });
+
+    // --- NUEVAS FUNCIONES DE DIAGNÓSTICO ---
+    function toggleDiag() {
+      var p = document.getElementById('diagPanel');
+      if (p.style.display === 'none') {
+        p.style.display = 'block';
+        updateDiag();
+      } else {
+        p.style.display = 'none';
+      }
+    }
+
+    function updateDiag() {
+      document.getElementById('diagContent').innerHTML = '<i data-lucide="loader" class="lucide-spin"></i> Consultando servidor...';
+      lucide.createIcons();
+      google.script.run
+        .withFailureHandler(function(err) {
+          document.getElementById('diagContent').innerHTML = '<span style="color:var(--red)">Error de Red: Verifica si tienes permiso para acceder a esta aplicación.</span>';
+          lucide.createIcons();
+        })
+        .withSuccessHandler(function(r) {
+          if (r.success) {
+            var html = '<b>URL:</b> ' + r.ssUrl + '<br>' +
+                       '<b>ID:</b> ' + r.ssId + '<br>' +
+                       '<b>Hojas:</b> ' + r.sheets.join(', ') + '<br>' +
+                       '<b>Usuarios:</b> ' + r.userCount + '<br>' +
+                       '<b>Script Activo:</b> ' + r.scriptUser;
+            document.getElementById('diagContent').innerHTML = html;
+          } else {
+            document.getElementById('diagContent').innerHTML = '<span style="color:var(--red)">' + r.message + '</span>';
+          }
+          lucide.createIcons();
+        }).getSystemStatus();
+    }
+
+    function doResetDatabase() {
+      if (!confirm('Esto forzará al sistema a buscar de nuevo la hoja activa. ¿Continuar?')) return;
+      document.getElementById('diagContent').innerHTML = 'Re-vinculando...';
+      google.script.run.withSuccessHandler(function(r) {
+        toast('Conexión reiniciada con éxito');
+        updateDiag();
+      }).resetDatabaseLink();
+    }
+
+    // ═══════ UTILIDADES ═══════
+    function esc(s) {
+      return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function fmt(n) {
+      if (!n) return '₡0,00';
+      // Limpiar si viene como string localizado (ej: "₡ 1.234,56")
+      var val = typeof n === 'number' ? n : parseFloat(String(n).replace(/[₡$ ]/g, '').replace(/\.(?=\d{3})/g, '').replace(',', '.'));
+      return '₡' + Number(val || 0).toLocaleString('es-CR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    var APP_VERSION = 'v1.4.1 (Audit)';
+
+    function robustParseDate(d) {
+      if (!d) return null;
+      if (d instanceof Date) return d;
+      var s = String(d).trim();
+      if (!s) return null;
+      
+      // Intentar ISO directo (YYYY-MM-DD)
+      var isoMatch = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+      if (isoMatch) {
+          return new Date(parseInt(isoMatch[1], 10), parseInt(isoMatch[2], 10) - 1, parseInt(isoMatch[3], 10));
+      }
+      
+      // Intentar ISO con T
+      if (s.indexOf('T') !== -1) { var iso = new Date(s); if(!isNaN(iso)) return iso; }
+      
+      // Manejar DD/MM/YYYY (Anclado para evitar falsos positivos con YYYY-MM-DD)
+      var parts = s.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{2,4})/);
+      if (parts) {
+        var day = parseInt(parts[1], 10);
+        var month = parseInt(parts[2], 10) - 1;
+        var year = parts[3].length === 2 ? 2000 + parseInt(parts[3], 10) : parseInt(parts[3], 10);
+        
+        // Intentar obtener hora si existe
+        var timeParts = s.match(/(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?/);
+        if (timeParts) {
+          return new Date(year, month, day, parseInt(timeParts[1], 10), parseInt(timeParts[2], 10), parseInt(timeParts[3]||0, 10));
+        }
+        return new Date(year, month, day);
+      }
+      
+      var final = new Date(s);
+      return isNaN(final) ? null : final;
+    }
+
+    function fmtDate(d) {
+      var date = robustParseDate(d);
+      if (!date) return '—';
+      try { return date.toLocaleDateString('es-CR', { day:'2-digit', month:'short', year:'numeric' }); }
+      catch(e) { return '—'; }
+    }
+
+    function clienteName(cod) {
+      if (!cod) return '—';
+      var cleanCod = String(cod).trim().toUpperCase();
+      
+      // Intentar match con ceros a la izquierda o sin ellos
+      var c = (appData.clientes || []).find(function(x) { 
+        var sheetCod = String(x[0]).trim().toUpperCase();
+        // Match exacto o match numérico (ej: "020702076" match "20702076")
+        return sheetCod === cleanCod || sheetCod.replace(/^0+/, '') === cleanCod.replace(/^0+/, '');
+      });
+      
+      return c ? c[1] : cod;
+    }
+
+    function toast(msg, type) {
+      var icon = type === 'error' ? 'x-circle' : 'check-circle';
+      var el = document.createElement('div');
+      el.className = 'toast ' + (type || 'success');
+      el.innerHTML = '<i data-lucide="' + icon + '"></i>' + esc(msg);
+      document.getElementById('toastContainer').appendChild(el);
+      lucide.createIcons();
+      setTimeout(function() { el.style.opacity = '0'; setTimeout(function() { el.remove(); }, 300); }, 3000);
+    }
+
+    function clearSessionConfig() {
+      document.getElementById('sessionDate').value = '';
+      document.getElementById('sessionAmount').value = '';
+      document.getElementById('sessionNote').value = '';
+      toast('Configuración de sesión limpia');
+    }
+
+    function setQuickNote(text) {
+      document.getElementById('sessionNote').value = text;
+      toast('Nota aplicada: ' + text);
+    }
+
+    // ═══════ NAVEGACIÓN ═══════
+    function showSection(id, navEl) {
+      document.querySelectorAll('section').forEach(function(s) { s.style.display = 'none'; });
+      var t = document.getElementById(id);
+      if (t) { t.style.animation = 'none'; t.offsetHeight; t.style.animation = ''; t.style.display = 'block'; }
+      document.querySelectorAll('.nav-item').forEach(function(el) { el.classList.remove('active'); });
+      if (navEl) navEl.classList.add('active');
+      lucide.createIcons();
+    }
+
+    // ═══════ MODALES ═══════
+    function openModal(id) {
+      var m = document.getElementById(id);
+      if (!m) return;
+      m.classList.add('open');
+      // En la versión Pro, los buscadores se inicializan solos al escribir
+    }
+    function closeModal(id) {
+      var m = document.getElementById(id);
+      if (!m) return;
+      m.classList.remove('open');
+      var f = m.querySelector('form');
+      if (f) {
+        f.reset();
+        // Limpiar también los inputs de búsqueda
+        m.querySelectorAll('.search-select-input').forEach(function(i) { i.value = ''; });
+        m.querySelectorAll('input[type="hidden"]').forEach(function(i) { i.value = ''; });
+      }
+    }
+    document.querySelectorAll('.modal-overlay').forEach(function(ov) {
+      ov.addEventListener('click', function(e) { if (e.target === ov) closeModal(ov.id); });
+    });
+
+    // ═══════ CARGA DE DATOS ═══════
+    window.onload = function() { loadAllData(); };
+
+    function loadAllData() {
+      if (!currentUser) return; // No cargar sin login
+      
+      var dbStatus = document.getElementById('dbStatus');
+      if (dbStatus) dbStatus.textContent = 'Sincronizando...';
+      var btn = document.getElementById('btnSync');
+      if (btn) btn.classList.add('syncing');
+      
+      google.script.run
+        .withSuccessHandler(function(data) {
+          try {
+            appData = data;
+            console.log('--- DEBUG DB ---', data.debug);
+            applyPromesaFilters();
+            applyIncidenciaFilters();
+            applyClienteFilters();
+            applyLlamadaFilters(); // Pro
+            renderDashboard(data);
+            renderQuickActions(data); // Pro
+            if (dbStatus) dbStatus.textContent = 'Sincronizado ✓';
+            
+            var now = new Date();
+            var timeStr = now.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+            var label = document.getElementById('lastSyncLabel');
+            if (label) label.textContent = 'Última sinc: ' + timeStr;
+            
+            if (btn) btn.classList.remove('syncing');
+          } catch (e) {
+            console.error('Error en renderizado:', e);
+            if (dbStatus) dbStatus.textContent = '⚠ Error de Visualización';
+            toast('Error al procesar datos: ' + e.message, 'error');
+          }
+        })
+        .withFailureHandler(function(err) {
+          if (dbStatus) dbStatus.textContent = '⚠ Error de Conexión';
+          console.error(err);
+          toast('Error de conexión con el servidor: ' + err, 'error');
+        })
+        .getDashboardData(currentUser.email);
+    }
+
+    function populateSelect(selectId) {
+      var sel = document.getElementById(selectId);
+      if (!sel) return;
+      sel.innerHTML = '<option value="">Seleccione un cliente...</option>';
+      (appData.clientes || []).forEach(function(c) {
+        var o = document.createElement('option');
+        o.value = c[0];
+        o.textContent = c[1] + ' (' + c[0] + ')';
+        sel.appendChild(o);
+      });
+    }
+
+    // ═══════ DASHBOARD ═══════
+    function renderDashboard(d) {
+      var hoy = new Date().toDateString();
+      var promHoy = d.promesas.filter(function(p) { return p[4] && new Date(p[4]).toDateString() === hoy; }).length;
+      document.getElementById('statPromesasHoy').textContent = promHoy;
+
+      var incPend = d.incidencias.filter(function(i) { return (i[5]||'').toUpperCase() !== 'RESUELTO'; }).length; 
+      document.getElementById('statIncPendientes').textContent = incPend;
+
+      var mes = new Date().getMonth(), yr = new Date().getFullYear();
+      var total = d.promesas.filter(function(p) {
+        if (!p[1]) return false;
+        var f = new Date(p[1]);
+        return f.getMonth() === mes && f.getFullYear() === yr;
+      }).reduce(function(s, p) { return s + (Number(p[3]) || 0); }, 0);
+      document.getElementById('statTotalMes').textContent = fmt(total);
+
+      document.getElementById('dCumplidas').textContent  = d.promesas.filter(function(p) { return (p[5]||'').toUpperCase() === 'CUMPLIÓ'; }).length;
+
+      // Stats de Llamadas
+      if (d.llamadas) {
+        var hoyStr = new Date().toDateString();
+        var callHoy = d.llamadas.filter(function(c) { 
+          var dc = robustParseDate(c[1]);
+          return dc && dc.toDateString() === hoyStr; 
+        }).length;
+        document.getElementById('statLlamadasHoy').textContent = callHoy;
+
+        // Efectividad Semanal
+        var unaSemana = new Date(); unaSemana.setDate(unaSemana.getDate() - 7);
+        var callsSem = d.llamadas.filter(function(c) { 
+          var dc = robustParseDate(c[1]);
+          return dc && dc > unaSemana; 
+        });
+        var ok = callsSem.filter(function(c) { return String(c[3]).toUpperCase() === 'CONTESTÓ'; }).length;
+        var totalCalls = callsSem.length || 1;
+        var no = Math.max(0, totalCalls - ok);
+
+        document.getElementById('segmentOk').style.width = (ok/totalCalls*100) + '%';
+        document.getElementById('segmentNo').style.width = (no/totalCalls*100) + '%';
+        document.getElementById('textOk').textContent = 'Contestadas: ' + ok;
+        document.getElementById('textNo').textContent = 'No contestadas: ' + no;
+      }
+    }
+
+    // ═══════ FILTROS: PROMESAS ═══════
+    function setPromesaFilter(estado, el) {
+      promesaFilterState = estado;
+      el.parentElement.querySelectorAll('.filter-pill').forEach(function(p) { p.classList.remove('active'); });
+      el.classList.add('active');
+      applyPromesaFilters();
+    }
+
+    function applyPromesaFilters() {
+      var q = (document.getElementById('searchPromesas')?.value || '').toLowerCase();
+      var filtered = appData.promesas.filter(function(p) {
+        var estado = (p[5] || 'PENDIENTE').toUpperCase();
+        if (promesaFilterState !== 'TODOS' && estado !== promesaFilterState) return false;
+        if (q) {
+          var nombre = clienteName(p[2]).toLowerCase();
+          var codigo = String(p[2]).toLowerCase();
+          if (nombre.indexOf(q) === -1 && codigo.indexOf(q) === -1) return false;
+        }
+        return true;
+      });
+      renderPromesas(filtered);
+    }
+
+    // ═══════ FILTROS: INCIDENCIAS ═══════
+    function setIncidenciaFilter(estado, el) {
+      incidenciaFilterState = estado;
+      el.parentElement.querySelectorAll('.filter-pill').forEach(function(p) { p.classList.remove('active'); });
+      el.classList.add('active');
+      applyIncidenciaFilters();
+    }
+
+    function applyIncidenciaFilters() {
+      var q = (document.getElementById('searchIncidencias')?.value || '').toLowerCase();
+      var filtered = appData.incidencias.filter(function(inc) {
+        var estado = (inc[5] || 'PENDIENTE').toUpperCase(); 
+        if (incidenciaFilterState !== 'TODOS' && estado !== incidenciaFilterState) return false;
+        if (q) {
+          var nombre = clienteName(inc[1]).toLowerCase();
+          var codigo = String(inc[1]).toLowerCase();
+          var factura = String(inc[2]).toLowerCase(); 
+          if (nombre.indexOf(q) === -1 && codigo.indexOf(q) === -1 && factura.indexOf(q) === -1) return false;
+        }
+        return true;
+      });
+      renderIncidencias(filtered);
+    }
+
+    // ═══════ FILTROS: CLIENTES ═══════
+    function applyClienteFilters() {
+      var q = (document.getElementById('searchClientes')?.value || '').toLowerCase();
+      var filtered = appData.clientes.filter(function(c) {
+        if (!q) return true;
+        return String(c[0]).toLowerCase().indexOf(q) !== -1 ||
+               String(c[1]).toLowerCase().indexOf(q) !== -1;
+      });
+      renderClientes(filtered);
+    }
+
+    // ═══════ FILTROS: LLAMADAS ═══════
+    function applyLlamadaFilters() {
+      var q = (document.getElementById('searchLlamadas')?.value || '').toLowerCase();
+      var filtered = appData.llamadas.filter(function(c) {
+        if (!q) return true;
+        var nombre = clienteName(c[2]).toLowerCase();
+        return nombre.indexOf(q) !== -1 || String(c[5]).toLowerCase().indexOf(q) !== -1;
+      });
+      renderLlamadas(filtered);
+    }
+
+    // ═══════ RENDER: PROMESAS KANBAN ═══════
+    function renderPromesas(promesas) {
+      var lists = {
+        'PENDIENTE':     document.getElementById('list-pendiente'),
+        'ABONO PARCIAL': document.getElementById('list-parcial'),
+        'CUMPLIÓ':       document.getElementById('list-cumplio')
+      };
+      Object.keys(lists).forEach(function(k) { if (lists[k]) lists[k].innerHTML = ''; });
+      var counts = { 'PENDIENTE': 0, 'ABONO PARCIAL': 0, 'CUMPLIÓ': 0 };
+
+      promesas.forEach(function(p, i) {
+        var estado = (p[5] || 'PENDIENTE').toUpperCase();
+        var col = lists[estado] || lists['PENDIENTE'];
+        if (!col) return;
+        counts[estado] = (counts[estado] || 0) + 1;
+
+        var nombre = clienteName(p[2]);
+        var card = document.createElement('div');
+        card.className = 'kanban-card';
+        card.style.animationDelay = (i * 0.04) + 's';
+        card.onclick = function() { openPromesaDetail(p); };
+        card.innerHTML =
+          '<div class="k-header">' +
+            '<div class="k-name" style="font-weight:800; color:var(--text); font-size:1rem">' + esc(nombre) + '</div>' + 
+            '<div class="k-code" style="font-size:0.75rem; opacity:0.6; color:var(--accent)">' + esc(p[2]) + '</div>' +
+          '</div>' +
+          '<div class="k-amount" style="font-size:1.1rem; margin-top:8px">' + fmt(p[3]) + '</div>' +
+          '<div class="k-date" style="font-size:0.8rem; margin-top:4px"><i data-lucide="calendar"></i>' + fmtDate(p[4]) + '</div>' +
+          (p[6] ? '<div class="k-notes">' + esc(p[6]) + '</div>' : '');
+        col.appendChild(card);
+      });
+
+      Object.keys(lists).forEach(function(k) {
+        if (lists[k] && lists[k].children.length === 0) {
+          lists[k].innerHTML = '<div class="kanban-empty">Sin registros</div>';
+        }
+      });
+
+      document.getElementById('badge-pendiente').textContent = counts['PENDIENTE'] || 0;
+      document.getElementById('badge-parcial').textContent   = counts['ABONO PARCIAL'] || 0;
+      document.getElementById('badge-cumplio').textContent   = counts['CUMPLIÓ'] || 0;
+      lucide.createIcons();
+    }
+
+    // ═══════ DETALLE PROMESA ═══════
+    function openPromesaDetail(p) {
+      activePromesaId = p[0];
+      var nombre = clienteName(p[2]);
+      
+      // Llenar modal de edición (Si quisiéramos editar campos, pero por ahora solo el estado)
+      // En la versión Pro, si quisiéramos cambiar el cliente, pondríamos:
+      // document.getElementById('searchDetPromCliente').value = nombre;
+      // document.getElementById('selDetPromClienteVal').value = p[2];
+
+      var grid = document.getElementById('detPromGrid');
+      grid.innerHTML =
+        '<div class="detail-item"><label>Cliente</label><div class="val" style="font-weight:800; color:var(--accent)">' + esc(nombre) + '</div></div>' +
+        '<div class="detail-item"><label>Factura / Ref</label><div class="val">' + esc(p[2]) + '</div></div>' +
+        '<div class="detail-item"><label>Monto</label><div class="val" style="color:var(--accent)">' + fmt(p[3]) + '</div></div>' +
+        '<div class="detail-item"><label>Fecha Promesa</label><div class="val">' + fmtDate(p[4]) + '</div></div>' +
+        '<div class="detail-item full"><label>Historial / Notas</label><div class="val" style="font-size:0.85rem; color:var(--muted)">' + (p[6] || 'Sin notas extra') + '</div></div>';
+
+      document.getElementById('detPromEstado').value = (p[5] || 'PENDIENTE');
+      openModal('modalDetPromesa');
+    }
+
+    function doUpdatePromesa() {
+      if (!activePromesaId) return;
+      var btn = document.getElementById('btnUpdateProm');
+      var newEstado = document.getElementById('detPromEstado').value;
+      btn.disabled = true;
+      google.script.run
+        .withSuccessHandler(function(r) {
+          btn.disabled = false;
+          if (r && r.success) { 
+            toast('Estado actualizado a ' + newEstado); 
+            closeModal('modalDetPromesa'); 
+            var p = appData.promesas.find(function(x) { return x[0] === activePromesaId; });
+            if (p) p[5] = newEstado;
+            applyPromesaFilters();
+            renderDashboard(appData);
+          }
+          else toast(r.message || 'Error', 'error');
+        })
+        .withFailureHandler(function(e) { btn.disabled = false; toast('Error: ' + e, 'error'); })
+        .updatePromesaEstado({ id: activePromesaId, estado: newEstado });
+    }
+
+    function doDeletePromesa() {
+      if (!activePromesaId) return;
+      if (!confirm('¿Estás seguro de eliminar esta promesa? Esta acción no se puede deshacer.')) return;
+      var btn = document.getElementById('btnDeleteProm');
+      btn.disabled = true;
+      google.script.run
+        .withSuccessHandler(function(r) {
+          btn.disabled = false;
+          if (r && r.success) { 
+            toast('Promesa eliminada'); 
+            closeModal('modalDetPromesa'); 
+            appData.promesas = appData.promesas.filter(function(x) { return x[0] !== activePromesaId; });
+            applyPromesaFilters();
+            renderDashboard(appData);
+          }
+          else toast(r.message || 'Error', 'error');
+        })
+        .withFailureHandler(function(e) { btn.disabled = false; toast('Error: ' + e, 'error'); })
+        .deletePromesa({ id: activePromesaId });
+    }
+
+    // ═══════ RENDER: INCIDENCIAS ═══════
+    function renderIncidencias(incidencias) {
+      var tbody = document.getElementById('tbIncidencias');
+      if (!tbody) return;
+      tbody.innerHTML = '';
+      if (incidencias.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="10" style="text-align:center; padding:40px; color:var(--muted)">Sin incidencias</td></tr>';
+        return;
+      }
+      
+      incidencias.forEach(function(inc) {
+        // Estructura inc: ID(0), CLIENTE_COD(1), FACTURA(2), MONTO(3), MOTIVO(4), ESTADO(5), CANAL(6), LINK_GMAIL(7), FECHA(8)
+        var row = document.createElement('tr');
+        var nombreCli = clienteName(inc[1]);
+        
+        var estadoCls = (inc[5]||'').toUpperCase() === 'RESUELTO' ? 'status-resuelto' : 'status-pendiente';
+        var estadoIcon = (inc[5]||'').toUpperCase() === 'RESUELTO' ? 'check-circle' : 'clock';
+        var pill = '<span class="status-pill ' + estadoCls + '"><i data-lucide="'+estadoIcon+'"></i> ' + esc(inc[5]||'PENDIENTE') + '</span>';
+        
+        var linkHtml = inc[7] ? '<a href="' + esc(inc[7]) + '" target="_blank" class="btn-icon" title="Ver Ticket" onclick="event.stopPropagation()"><i data-lucide="external-link"></i></a>' : '<span style="color:var(--muted)">—</span>';
+        
+        var canalHtml = '<span style="color:var(--muted)">—</span>';
+        if (inc[6] && inc[6] !== 'No definido') {
+          var iconCanal = 'message-circle';
+          if (inc[6].toLowerCase() === 'correo') iconCanal = 'mail';
+          else if (inc[6].toLowerCase() === 'llamada') iconCanal = 'phone';
+          canalHtml = '<div style="display:flex; align-items:center; gap:6px;"><i data-lucide="'+iconCanal+'" style="width:14px;height:14px;color:var(--accent)"></i> '+esc(inc[6])+'</div>';
+        }
+
+        row.innerHTML =
+          '<td style="font-weight:700; color:var(--text)">' + esc(nombreCli) + ' <small style="display:block; font-weight:400; opacity:0.5; font-size:0.7rem">' + esc(inc[1]) + '</small></td>' +
+          '<td style="font-weight:800; color:var(--accent)">' + esc(inc[2]) + '</td>' +
+          '<td style="font-weight:700">' + fmt(inc[3]) + '</td>' +
+          '<td style="max-width:180px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="'+esc(inc[4])+'">' + esc(inc[4]) + '</td>' +
+          '<td>' + canalHtml + '</td>' +
+          '<td style="font-size:0.8rem; color:var(--muted)">' + fmtDate(inc[8]) + '</td>' +
+          '<td>' + pill + '</td>' +
+          '<td>' + linkHtml + '</td>' +
+          '<td><button class="btn-icon" title="Eliminar" onclick="event.stopPropagation(); deleteIncidencia(\''+inc[0]+'\')"><i data-lucide="trash-2"></i></button></td>';
+        
+        row.style.cursor = 'pointer';
+        row.onclick = function() { openIncidenciaDetail(inc); };
+        tbody.appendChild(row);
+      });
+      lucide.createIcons();
+    }
+
+    // ═══════ LÓGICA DE INCIDENCIAS ═══════
+    function openIncidenciaDetail(inc) {
+      document.getElementById('incFacturaOriginal').value = inc[0]; // ID real
+      
+      var nombre = clienteName(inc[1]);
+      var inputBusq = document.getElementById('searchDetIncCliente');
+      if (inputBusq) inputBusq.value = nombre;
+      
+      var inputHidden = document.getElementById('selDetIncClienteVal');
+      if (inputHidden) inputHidden.value = inc[1];
+
+      document.getElementById('incFactura').value = inc[2];
+      document.getElementById('incMonto').value = inc[3];
+      document.getElementById('incMotivo').value = inc[4];
+      document.getElementById('incCanal').value = inc[6] || 'No definido';
+      document.getElementById('incEstado').value = inc[5] || 'PENDIENTE';
+      document.getElementById('incLink').value = inc[7] || '';
+      
+      toggleIncLinkField();
+      openModal('modalDetIncidencia');
+    }
+
+    function toggleIncLinkField() {
+      var state = document.getElementById('incEstado').value;
+      // document.getElementById('groupIncLink').style.display = (state === 'RESUELTO') ? 'block' : 'none';
+      // Ahora el enlace se muestra siempre para ver el progreso del correo
+    }
+
+    function toggleEmailPanel(show) {
+      document.getElementById('emailPanel').style.display = show ? 'block' : 'none';
+      if (show) {
+        var cod = document.getElementById('selDetIncClienteVal').value;
+        var fact = document.getElementById('incFactura').value || 'S/N';
+        if (cod) {
+          var client = (appData.clientes || []).find(function(c) { return String(c[0]) === String(cod); });
+          if (client && client[3]) document.getElementById('incMailTo').value = client[3];
+          document.getElementById('incMailSubject').value = 'Seguimiento de Incidencia - Factura ' + fact + ' - ' + clienteName(cod);
+        }
+      }
+    }
+
+    function insertTag(tag) {
+      var area = document.getElementById('incMailBody');
+      var start = area.selectionStart;
+      var end = area.selectionEnd;
+      var text = area.value;
+      area.value = text.substring(0, start) + tag + text.substring(end);
+      area.focus();
+      area.selectionStart = area.selectionEnd = start + tag.length;
+    }
+
+    function updateIncidenciaCompleta() {
+      var id = document.getElementById('incFacturaOriginal').value;
+      if (!id) return;
+      var btn = document.getElementById('btnSaveIncEdit');
+      btn.disabled = true;
+      var data = {
+        id: id,
+        clienteCod: document.getElementById('selDetIncClienteVal').value,
+        factura: document.getElementById('incFactura').value,
+        monto: document.getElementById('incMonto').value,
+        motivo: document.getElementById('incMotivo').value,
+        canal: document.getElementById('incCanal').value,
+        estado: document.getElementById('incEstado').value,
+        link: document.getElementById('incLink').value,
+        interventor: currentUser.email,
+        // Datos de correo
+        sendEmail: document.getElementById('incSendEmail').checked,
+        emailData: {
+          to: document.getElementById('incMailTo').value,
+          subject: document.getElementById('incMailSubject').value,
+          body: document.getElementById('incMailBody').value
+        }
+      };
+
+      // Si hay archivo, leerlo como base64
+      var fileInput = document.getElementById('incMailFile');
+      if (data.sendEmail && fileInput.files.length > 0) {
+        var file = fileInput.files[0];
+        var reader = new FileReader();
+        reader.onload = function(e) {
+          data.emailData.attachment = {
+            content: e.target.result.split(',')[1],
+            name: file.name,
+            mimeType: file.type
+          };
+          execUpdateIncid(data, btn);
+        };
+        reader.readAsDataURL(file);
+      } else {
+        execUpdateIncid(data, btn);
+      }
+    }
+
+    function execUpdateIncid(data, btn) {
+      google.script.run
+        .withSuccessHandler(function(r) {
+          btn.disabled = false;
+          if (r && r.success) {
+            toast('Incidencia y comunicación procesadas');
+            closeModal('modalDetIncidencia');
+            // Resetear checks
+            document.getElementById('incSendEmail').checked = false;
+            toggleEmailPanel(false);
+
+            var id = data.id;
+            var incIndex = appData.incidencias.findIndex(function(i) { return String(i[0]) === String(id); });
+            if (incIndex >= 0) {
+              appData.incidencias[incIndex][1] = data.clienteCod;
+              appData.incidencias[incIndex][2] = data.factura;
+              appData.incidencias[incIndex][3] = data.monto;
+              appData.incidencias[incIndex][4] = data.motivo;
+              appData.incidencias[incIndex][5] = data.estado;
+              appData.incidencias[incIndex][6] = data.canal;
+              appData.incidencias[incIndex][7] = r.newLink || data.link; // Usar el nuevo link si existe
+            }
+            applyIncidenciaFilters();
+            renderDashboard(appData);
+          } else {
+            toast(r.message || 'Error al actualizar', 'error');
+          }
+        })
+        .withFailureHandler(function(e) { btn.disabled = false; toast('Error: ' + e, 'error'); })
+        .updateIncidenciaCompleta(data);
+    }
+
+    function deleteIncidencia(id) {
+      if (!confirm('¿Seguro que deseas eliminar esta incidencia? Las métricas cambiarán.')) return;
+      toast('Eliminando...');
+      
+      var payload = { factura: id }; 
+      google.script.run
+        .withSuccessHandler(function(r) {
+          if(r && r.success) {
+            toast(r.message);
+            appData.incidencias = appData.incidencias.filter(function(i){ return String(i[0]) !== String(id); });
+            applyIncidenciaFilters(); renderDashboard(appData);
+          } else toast(r.message||'Error al eliminar','error');
+        })
+        .withFailureHandler(function(e){ toast('Error: '+e,'error'); })
+        .deleteIncidencia(payload);
+    }
+
+    // ═══════ RENDER: CLIENTES ═══════
+    function renderClientes(clientes) {
+      var tbody = document.getElementById('tbodyClientes');
+      if (!tbody) return;
+      tbody.innerHTML = '';
+      if (clientes.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:40px; color:var(--muted)">Sin clientes</td></tr>';
+        return;
+      }
+      clientes.forEach(function(c) {
+        var row = document.createElement('tr');
+        row.innerHTML =
+          '<td style="font-weight:800; color:var(--accent)">' + esc(c[0]) + '</td>' +
+          '<td style="font-weight:600">' + esc(c[1]) + '</td>' +
+          '<td style="color:var(--muted)">' + esc(c[2] || '—') + '</td>' +
+          '<td style="color:var(--muted)">' + esc(c[3] || '—') + '</td>';
+        tbody.appendChild(row);
+      });
+    }
+
+    // ═══════ RENDER: LLAMADAS ═══════
+    function setCallSort(colIdx) {
+      if (callSort.col === colIdx) {
+        callSort.dir = (callSort.dir === 'asc') ? 'desc' : 'asc';
+      } else {
+        callSort.col = colIdx;
+        callSort.dir = 'asc';
+      }
+      renderLlamadas(appData.llamadas);
+    }
+
+    function renderLlamadas(list) {
+      var tbody = document.getElementById('callTableBody');
+      var headerRow = document.getElementById('historyTableHeader');
+      if (!tbody) return;
+      tbody.innerHTML = '';
+
+      if (headerRow) {
+        var cols = ['Fecha y Hora', 'Cliente', 'Resultado', 'Notas de Gestión', 'Acciones'];
+        var hHtml = '';
+        cols.forEach(function(c, i) {
+          var isSorted = callSort.col === i;
+          var icon = isSorted ? (callSort.dir === 'asc' ? ' <i data-lucide="chevron-up" style="width:12px"></i>' : ' <i data-lucide="chevron-down" style="width:12px"></i>') : '';
+          var style = (i < 3) ? 'cursor:pointer; user-select:none' : '';
+          var onclick = (i < 3) ? 'onclick="setCallSort('+i+')"' : '';
+          hHtml += '<th '+onclick+' style="'+style+'">'+c+icon+'</th>';
+        });
+        hHtml += '<th width="100" style="text-align:right">Acciones</th>'; // Acciones no se ordena
+        // Ajuste: el array Cols tiene 5 elementos, pero el último es acciones.
+        // Reescribo manual para mayor control:
+        headerRow.innerHTML = 
+          '<th onclick="setCallSort(0)" style="cursor:pointer; user-select:none">Fecha y Hora ' + (callSort.col===0?(callSort.dir==='asc'?'↑':'↓'):'') + '</th>' +
+          '<th onclick="setCallSort(1)" style="cursor:pointer; user-select:none">Cliente ' + (callSort.col===1?(callSort.dir==='asc'?'↑':'↓'):'') + '</th>' +
+          '<th onclick="setCallSort(2)" style="cursor:pointer; user-select:none">Resultado ' + (callSort.col===2?(callSort.dir==='asc'?'↑':'↓'):'') + '</th>' +
+          '<th>Notas de Gestión</th>' +
+          '<th width="100" style="text-align:right">Acciones</th>';
+      }
+
+      if (list.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:40px; color:var(--muted)">Sin gestiones registradas</td></tr>';
+        return;
+      }
+      
+      var sorted = list.slice().sort(function(a, b) {
+        var valA, valB;
+        if (callSort.col === 0) { // Fecha
+          valA = new Date(robustParseDate(a[1]) || 0);
+          valB = new Date(robustParseDate(b[1]) || 0);
+        } else if (callSort.col === 1) { // Cliente
+          valA = clienteName(a[2]).toLowerCase();
+          valB = clienteName(b[2]).toLowerCase();
+        } else if (callSort.col === 2) { // Resultado
+          valA = String(a[3]).toLowerCase();
+          valB = String(b[3]).toLowerCase();
+        } else {
+          return 0;
+        }
+        
+        if (valA < valB) return callSort.dir === 'asc' ? -1 : 1;
+        if (valA > valB) return callSort.dir === 'asc' ? 1 : -1;
+        return 0;
+      });
+
+      sorted.forEach(function(c) {
+        var res = String(c[3]).toUpperCase();
+        var statusCls = 'info';
+        if (res === 'CONTESTÓ') statusCls = 'success';
+        else if (res === 'NO CONTESTÓ') statusCls = 'failed';
+        else if (res === 'VOLVER A LLAMAR') statusCls = 'warning';
+        
+        var nombre = clienteName(c[2]);
+        var tr = document.createElement('tr');
+        tr.id = 'row-call-' + c[0];
+        
+        var fechaFull = fmtDate(c[1]);
+        var horaFull = robustParseDate(c[1]) ? robustParseDate(c[1]).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '';
+
+        // Toggles para extras (EC, PRO) basados en las notas por ahora
+        var hasEC = (c[5]||'').indexOf('EC ENVIADO') !== -1;
+        var hasPROM = (c[5]||'').indexOf('PROMESA') !== -1;
+
+        tr.innerHTML = 
+          '<td style="font-size:0.85rem; color:var(--muted)">' +
+            '<div style="font-weight:600; color:var(--text)">' + fechaFull + '</div>' + 
+            '<div>' + horaFull + '</div>' +
+          '</td>' +
+          '<td>' +
+            '<div style="font-weight:700; color:var(--text)">' + esc(nombre) + '</div>' +
+            '<div style="font-size:0.7rem; opacity:0.5">Cód: ' + esc(c[2]) + '</div>' +
+          '</td>' +
+          '<td><span class="call-status ' + statusCls + '" style="cursor:pointer" onclick="toggleLlamadaStatus(\''+c[0]+'\', \''+res+'\')" title="Click para alternar estado">' + esc(c[3]) + '</span></td>' +
+          '<td style="font-size:0.9rem; max-width:250px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap" id="note-call-'+c[0]+'" title="'+esc(c[5])+'">' + 
+             '<i data-lucide="user" style="width:12px; opacity:0.3; margin-right:4px"></i>' + esc(c[4]) + ': ' + (c[5] ? '"' + esc(c[5]) + '"' : '---') + 
+          '</td>' +
+          '<td>' +
+             '<div class="history-actions">' +
+               '<button class="btn-mini '+(hasEC?'active':'')+'" onclick="toggleLlamadaExtra(\''+c[0]+'\', \'EC\')" title="Toggle EC" style="color:'+(hasEC?'#22c55e':'')+'; border-color:'+(hasEC?'#22c55e':'')+'"><i data-lucide="file-text"></i></button>' +
+               '<button class="btn-mini '+(hasPROM?'active':'')+'" onclick="toggleLlamadaExtra(\''+c[0]+'\', \'PROM\')" title="Toggle Promesa" style="color:'+(hasPROM?'#a855f7':'')+'; border-color:'+(hasPROM?'#a855f7':'')+'"><i data-lucide="calendar-plus"></i></button>' +
+               '<div style="width:1px; background:var(--border); margin:0 4px"></div>' +
+               '<button class="btn-mini" onclick="editLlamada(\''+c[0]+'\')" title="Editar completa"><i data-lucide="edit-3"></i></button>' +
+               '<button class="btn-mini danger" onclick="deleteLlamada(\''+c[0]+'\')" title="Eliminar"><i data-lucide="trash-2"></i></button>' +
+             '</div>' +
+          '</td>';
+        tbody.appendChild(tr);
+      });
+      lucide.createIcons();
+    }
+
+    function toggleLlamadaStatus(id, current) {
+      var next = (current === 'CONTESTÓ') ? 'NO CONTESTÓ' : 'CONTESTÓ';
+      toast('Actualizando estado...');
+      google.script.run.withSuccessHandler(function(r) {
+        if (r.success) {
+          var idx = appData.llamadas.findIndex(function(x) { return String(x[0]) === String(id); });
+          if (idx !== -1) appData.llamadas[idx] = r.data;
+          renderLlamadas(appData.llamadas);
+          renderDashboard(appData);
+          toast('Estado: ' + next);
+        }
+      }).updateLlamada({ id: id, resultado: next });
+    }
+
+    function toggleLlamadaExtra(id, type) {
+      var call = appData.llamadas.find(function(x) { return String(x[0]) === String(id); });
+      if (!call) return;
+      
+      var notes = call[5] || '';
+      var tag = type === 'EC' ? '[EC ENVIADO]' : '[PROMESA]';
+      
+      if (notes.indexOf(tag) !== -1) {
+        notes = notes.replace(tag, '').trim();
+      } else {
+        notes = (tag + ' ' + notes).trim();
+      }
+
+      toast('Actualizando gestión...');
+      google.script.run.withSuccessHandler(function(r) {
+        if (r.success) {
+          var idx = appData.llamadas.findIndex(function(x) { return String(x[0]) === String(id); });
+          if (idx !== -1) appData.llamadas[idx] = r.data;
+          renderLlamadas(appData.llamadas);
+          toast('Gestión actualizada');
+        }
+      }).updateLlamada({ id: id, notas: notes });
+    }
+
+    function openQuickIncidencia(cod) {
+      var nombre = clienteName(cod);
+      openModal('modalIncidencia');
+      
+      // Esperar un momento a que Lucide y el modal carguen
+      setTimeout(function() {
+        var inputBusq = document.getElementById('searchIncCliente');
+        if (inputBusq) {
+          inputBusq.value = nombre;
+          document.getElementById('selIncClienteVal').value = cod;
+        }
+      }, 50);
+    }
+
+    function openMagicPromesa(cod) {
+      var sDate = document.getElementById('sessionDate').value;
+      var sAmount = document.getElementById('sessionAmount').value;
+      var sNote = document.getElementById('sessionNote').value;
+
+      if (sDate) {
+        // MODO INSTANTÁNEO ⚡
+        toast('Guardando promesa instantánea...');
+        var payload = {
+          clienteCod: cod,
+          monto: sAmount || 0,
+          fechaPromesa: sDate,
+          notas: sNote || 'Promesa de pago rápida via Sesión Masiva.',
+          interventor: currentUser.email
+        };
+        google.script.run.withSuccessHandler(function(r) {
+          if (r.success) {
+            appData.promesas.push(r.data);
+            applyPromesaFilters(); renderDashboard(appData);
+            toast('Promesa guardada para ' + clienteName(cod));
+          } else toast(r.message, 'error');
+        }).savePromesa(payload);
+      } else {
+        // MODO MANUAL (Default)
+        document.getElementById('searchPromCliente').value = clienteName(cod);
+        document.getElementById('selPromClienteVal').value = cod;
+        if (sAmount) document.getElementById('formPromesa').monto.value = sAmount;
+        if (sNote) document.getElementById('formPromesa').notas.value = sNote;
+        openModal('modalPromesa');
+      }
+    }
+
+    function clearSessionConfig() {
+      document.getElementById('sessionDate').value = '';
+      document.getElementById('sessionAmount').value = '';
+      document.getElementById('sessionNote').value = '';
+      toast('Configuración de sesión limpia');
+    }
+
+    function deleteLlamada(id) {
+      if (!confirm('¿Borrar registro de llamada?')) return;
+      google.script.run.withSuccessHandler(function(r) {
+        if (r.success) {
+          appData.llamadas = appData.llamadas.filter(function(x){ return x[0] !== id; });
+          applyLlamadaFilters(); renderDashboard(appData);
+        }
+      }).deleteLlamada({id: id});
+    }
+
+    var activeLlamadaId = null;
+    function editLlamada(id) {
+      var call = appData.llamadas.find(function(x) { return String(x[0]) === String(id); });
+      if (!call) return;
+      
+      activeLlamadaId = id;
+      var form = document.getElementById('formLlamada');
+      form.clienteCod.value = call[2];
+      document.getElementById('searchCallCliente').value = clienteName(call[2]);
+      document.getElementById('selCallClienteVal').value = call[2];
+      form.resultado.value = call[3];
+      form.notas.value = call[5] || '';
+      
+      openModal('modalLlamada');
+    }
+
+    // ═══════ COMPONENTE: SEARCH SELECT ═══════
+    function handleSearchSelect(input, hiddenId) {
+      var q = input.value.toLowerCase();
+      var resultsDiv = document.getElementById('results-' + input.id);
+      resultsDiv.innerHTML = '';
+      if (!q) { resultsDiv.classList.remove('open'); return; }
+      
+      var filtered = appData.clientes.filter(function(c) {
+        return c[0].toLowerCase().indexOf(q) !== -1 || c[1].toLowerCase().indexOf(q) !== -1;
+      }).slice(0, 8);
+
+      if (filtered.length === 0) { resultsDiv.classList.remove('open'); return; }
+
+      filtered.forEach(function(c) {
+        var div = document.createElement('div');
+        div.className = 'search-item';
+        div.innerHTML = '<span class="s-name">' + esc(c[1]) + '</span><span class="s-code">' + esc(c[0]) + '</span>';
+        div.onclick = function() {
+          input.value = c[1];
+          document.getElementById(hiddenId).value = c[0];
+          resultsDiv.classList.remove('open');
+        };
+        resultsDiv.appendChild(div);
+      });
+      resultsDiv.classList.add('open');
+    }
+    
+    // Cerrar buscadores al hacer click fuera
+    document.addEventListener('click', function(e) {
+      if (!e.target.closest('.search-select-container')) {
+        document.querySelectorAll('.search-results').forEach(function(r) { r.classList.remove('open'); });
+      }
+    });
+    function setupForm(formId, serverFn, modalId, btnId, dataKey, refreshFnName) {
+      var form = document.getElementById(formId);
+      var btn  = document.getElementById(btnId);
+      if (!form || !btn) return;
+      var origHTML = btn.innerHTML;
+      form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        btn.disabled = true;
+        // Animacion spinner desde lucide usando class="lucide-spin" pero manualmente por CSS si existiera
+        btn.innerHTML = '<i data-lucide="loader"></i> Procesando...';
+        lucide.createIcons();
+        var fd = Object.fromEntries(new FormData(form));
+        if (currentUser) fd.interventor = currentUser.email;
+        google.script.run
+          .withSuccessHandler(function(r) {
+            btn.disabled = false; btn.innerHTML = origHTML; lucide.createIcons();
+            if (r && r.success === false) { toast(r.message, 'error'); return; }
+            toast(r.message || 'Guardado');
+            closeModal(modalId);
+            
+            // Actualización Local Optimista
+            if (r.data && dataKey) {
+              if (modalId === 'modalLlamada' && activeLlamadaId) {
+                // Es una edición
+                var idx = appData.llamadas.findIndex(function(x) { return String(x[0]) === String(activeLlamadaId); });
+                if (idx !== -1) appData.llamadas[idx] = r.data;
+                activeLlamadaId = null;
+              } else {
+                appData[dataKey].push(r.data);
+              }
+              
+              if (refreshFnName === 'applyClienteFilters') { populateSelect('selPromCliente'); populateSelect('selIncCliente'); applyClienteFilters(); }
+              if (refreshFnName === 'applyPromesaFilters') applyPromesaFilters();
+              if (refreshFnName === 'applyIncidenciaFilters') applyIncidenciaFilters();
+              renderDashboard(appData);
+            } else {
+              loadAllData(); // Fallback si algo falla
+            }
+          })
+          .withFailureHandler(function(err) {
+            btn.disabled = false; btn.innerHTML = origHTML; lucide.createIcons();
+            toast('Error: ' + err, 'error');
+          })
+          [serverFn](fd);
+      });
+    }
+    setupForm('formCliente',    'addCliente',    'modalCliente',    'btnSaveCliente', 'clientes', 'applyClienteFilters');
+    setupForm('formPromesa',    'savePromesa',   'modalPromesa',    'btnSavePromesa', 'promesas', 'applyPromesaFilters');
+    setupForm('formIncidencia', 'saveIncidencia','modalIncidencia', 'btnSaveInc', 'incidencias', 'applyIncidenciaFilters');
+    setupForm('formLlamada',    'saveLlamada',   'modalLlamada',    'btnSaveCall', 'llamadas', 'applyLlamadaFilters');
+
+    // ═══════ ASISTENTE NLP MÁGICO V2 ═══════
+    var magicParsedItems = [];
+
+    // Helper: Búsqueda difusa de clientes
+    function findClientFuzzy(text) {
+      if (!text || !appData.clientes) return null;
+      var bestMatch = null;
+      var maxScore = 0;
+      var words = text.toLowerCase().split(/\s+/);
+      
+      appData.clientes.forEach(function(c) {
+        var cod = String(c[0]||'').toLowerCase();
+        var nom = String(c[1]||'').toLowerCase();
+        var score = 0;
+        
+        if (words.indexOf(cod) !== -1) score += 50;
+        if (nom.indexOf(text.toLowerCase()) !== -1) score += 20;
+
+        var nomWords = nom.split(/\s+/);
+        words.forEach(function(w) {
+          if (w.length > 2 && nomWords.some(function(nw){ return nw.indexOf(w) !== -1; })) {
+            score += 5;
+          }
+        });
+
+        if (score > maxScore && score > 0) {
+          maxScore = score;
+          bestMatch = { code: c[0], name: c[1] };
+        }
+      });
+      return bestMatch;
+    }
+
+    function processMagicInput() {
+      var text = document.getElementById('magicInput').value;
+      var container = document.getElementById('magicCardsContainer');
+      var btn = document.getElementById('btnSaveMagic');
+      
+      if (!text.trim()) { container.classList.remove('active'); btn.disabled = true; return; }
+      
+      var lines = text.split('\n');
+      magicParsedItems = [];
+      container.innerHTML = '';
+      
+      // Nuevas Regex refinadas
+      var regMonto = /(?:por|de|monto)?\s*(?:₡|\$)?\s*(\d{2,}(?:[\.,]\d+)?)/i;
+      var regDate = /(?:el|para el|fecha)?\s*(\d{1,2}[\/-]\d{1,2}(?:[\/-]\d{2,4})?)/i;
+      var regFactura = /\b(f[\s-]*\d+|\d{6,7})\b/i;
+      var regPhone = /\b\d{4}-?\d{4}\b/;
+      var regEmail = /\b[\w\.-]+@[\w\.-]+\.\w{2,4}\b/;
+      var regCanal = /\b(whatsapp|wa|correo|email|llamada|telefono)\b/i;
+
+      lines.forEach(function(line) {
+        if (!line.trim()) return;
+        var t = line.trim();
+        var words = t.split(/\s+/);
+        var firstWord = words[0].toLowerCase();
+        
+        var item = { raw: t, type: 'error', clienteCod: '', clienteNombre: '', monto: 0, fecha: '', factura: '', notas: '', canal: 'No definido', errorMsg: '', interventor: (currentUser ? currentUser.email : 'SISTEMA') };
+
+        // 1. DETERMINAR TIPO (ESTRICTO POR 1RA PALABRA)
+        if (firstWord === 'cliente' || firstWord === 'nuevocliente') item.type = 'cliente';
+        else if (firstWord === 'incidencia' || firstWord === 'factura') item.type = 'incidencia';
+        else if (firstWord === 'promesa' || firstWord === 'abono') item.type = 'promesa';
+        else {
+          item.errorMsg = 'Escribe "promesa", "incidencia" o "cliente" al inicio v';
+          item.type = 'error';
+        }
+
+        if (item.type !== 'error') {
+          t = t.substring(firstWord.length).trim(); // Quitar 1ra palabra
+          
+          // PASO 1: ENCONTRAR CLIENTE (excepto si creamos nuevo)
+          if (item.type !== 'cliente') {
+            if (!t) {
+              item.errorMsg = '¿De qué cliente? (Escribe su nombre o código)';
+              item.type = 'error';
+            } else {
+              var clientMatch = findClientFuzzy(t);
+              if (clientMatch) {
+                item.clienteCod = clientMatch.code;
+                item.clienteNombre = clientMatch.name;
+                var regexRemove = new RegExp(clientMatch.matchedStr, "i");
+                t = t.replace(regexRemove, ' ').trim();
+              } else {
+                item.errorMsg = 'No reconocí el cliente. Sigue escribiendo...';
+                item.type = 'error';
+              }
+            }
+          }
+
+          // PASO 2: EXTRAER DATOS (Si ya tenemos cliente o si es nuevo)
+          if (item.type !== 'error') {
+            
+            if (item.type === 'incidencia') {
+              var mFac = t.match(regFactura);
+              if (mFac) { item.factura = mFac[0].toUpperCase(); t = t.replace(mFac[0], ' '); }
+              
+              if (!item.factura) { 
+                item.errorMsg = 'Cliente ' + item.clienteNombre + ' ✓. Escribe la factura (6 o 7 dígitos)'; 
+                item.type = 'error'; 
+              } else {
+                var mMonto = t.match(regMonto);
+                if (mMonto) { item.monto = Number(mMonto[1].replace(/,/g, '')); t = t.replace(mMonto[0], ' '); }
+                if (!item.monto) {
+                  item.errorMsg = 'Fac ' + item.factura + ' ✓. ¿De cuánto es el monto?';
+                  item.type = 'error';
+                } else {
+                  // Buscar CANAL DE SEGUIMIENTO
+                  var mCanal = t.match(regCanal);
+                  if (mCanal) {
+                    var cVal = mCanal[1].toLowerCase();
+                    if (cVal === 'wa') cVal = 'whatsapp';
+                    if (cVal === 'email') cVal = 'correo';
+                    if (cVal === 'telefono') cVal = 'llamada';
+                    item.canal = cVal.charAt(0).toUpperCase() + cVal.slice(1);
+                    t = t.replace(mCanal[0], ' ');
+                  }
+                  
+                  item.motivo = t.replace(/\s+/g,' ').trim() || 'Sin motivo';
+                }
+              }
+            }
+            
+            else if (item.type === 'promesa') {
+              // 2.a Promesa -> Requiere Monto (Paso 2)
+              // (Extraemos Fecha al mismo tiempo si está, pero guiamos por pasos)
+              var mMonto = t.match(regMonto);
+              var mDate = t.match(regDate);
+              
+              if (mMonto) { item.monto = Number(mMonto[1].replace(/,/g, '')); t = t.replace(mMonto[0], ' '); }
+              
+              if (!item.monto) {
+                item.errorMsg = 'Cliente ✓. ¿Por qué monto es la promesa?';
+                item.type = 'error';
+              } else {
+                // Monto listo. Buscamos fecha
+                if (mDate) {
+                  var pDate = mDate[1].replace(/-/g, '/').split('/');
+                  var yr = pDate.length === 3 ? (pDate[2].length === 2 ? '20'+pDate[2] : pDate[2]) : new Date().getFullYear();
+                  item.fecha = yr + '-' + pDate[1].padStart(2, '0') + '-' + pDate[0].padStart(2, '0');
+                  t = t.replace(mDate[0], ' ');
+                  item.notas = t.replace(/\s+/g,' ').trim();
+                } else {
+                  item.errorMsg = 'Monto ' + fmt(item.monto) + ' ✓. ¿Para qué fecha (DD/MM)?';
+                  item.type = 'error';
+                }
+              }
+            }
+
+            else if (item.type === 'cliente') {
+              // Si es cliente nuevo
+              var mPhone = t.match(regPhone); if(mPhone) { item.telefono = mPhone[0]; t = t.replace(mPhone[0],' '); }
+              var mEmail = t.match(regEmail); if(mEmail) { item.correo = mEmail[0]; t = t.replace(mEmail[0],' '); }
+              
+              // El nombre y codigo restante (Si escribe c002 o 0202011899)
+              var mCodeC = t.match(/\b(?:c\d{1,4}|\d{4,12})\b/i);
+              if (mCodeC) { item.clienteCod = mCodeC[0].toUpperCase(); t = t.replace(mCodeC[0], ' '); }
+              
+              item.nombre = t.replace(/\s+/g,' ').trim();
+
+              if (!item.clienteCod) { item.errorMsg = 'Ingresa un código disponible (ej: C099)'; item.type = 'error'; }
+              else if (!item.nombre) { item.errorMsg = 'Código ' + item.clienteCod + ' ✓. Ingresa su nombre completo'; item.type = 'error'; }
+            }
+          }
+        }
+
+        magicParsedItems.push(item);
+
+        // 4. RENDER VÍA TARJETAS (CARDS)
+        var card = document.createElement('div');
+        if (item.type === 'error') {
+          // Si el texto esta muy avanzado y hay error, le marcamos qué falta exactamente de color suave.
+          card.className = 'm-card error';
+          var rawDisp = item.raw.length > 30 ? item.raw.substring(0,27) + '...' : item.raw;
+          card.innerHTML = 
+            '<div class="m-card-icon"><i data-lucide="help-circle"></i></div>' +
+            '<div class="m-card-body">' +
+              '<div class="m-card-title" style="color:var(--text)">Siguiente paso...</div>' +
+              '<div class="m-card-desc"><span style="color:var(--accent);font-weight:600">' + item.errorMsg + '</span> <span style="opacity:0.5; margin-left:8px">(' + esc(rawDisp) + ')</span></div>' +
+            '</div>';
+        } else {
+          card.className = 'm-card success ' + item.type;
+          var iconName = item.type === 'promesa' ? 'calendar-check' : (item.type === 'incidencia' ? 'alert-triangle' : 'user-plus');
+          var titleText = item.type.toUpperCase() + ': ' + (item.clienteNombre || item.nombre);
+          
+          var parts = [];
+          if (item.clienteCod && item.clienteCod !== 'undefined') parts.push('<strong style="color:var(--text)">' + esc(item.clienteCod) + '</strong>');
+          if (item.monto) parts.push('Por: <strong>' + fmt(item.monto) + '</strong>');
+          if (item.fecha) parts.push('Para: <strong>' + fmtDate(item.fecha) + '</strong>');
+          if (item.factura) parts.push('Fac: <strong>' + esc(item.factura) + '</strong>');
+          var extraStr = item.notas || item.motivo || item.correo || item.telefono || '';
+          if (extraStr) parts.push('<span style="color:var(--muted)">' + esc(extraStr) + '</span>');
+
+          card.innerHTML = 
+            '<div class="m-card-icon"><i data-lucide="' + iconName + '"></i></div>' +
+            '<div class="m-card-body">' +
+              '<div class="m-card-title">' + esc(titleText) + '</div>' +
+              '<div class="m-card-desc">' + parts.join(' &bull; ') + '</div>' +
+            '</div>';
+        }
+        container.appendChild(card);
+      });
+      
+      lucide.createIcons({ root: container });
+      container.classList.add('active');
+      var hasErrors = magicParsedItems.some(function(x){ return x.type === 'error'; });
+      btn.disabled = magicParsedItems.length === 0 || hasErrors;
+    }
+
+    function toggleFloatingChat() {
+      var panel = document.getElementById('floatingChat');
+      panel.classList.toggle('open');
+      if (panel.classList.contains('open')) {
+        document.getElementById('magicInput').focus();
+      }
+    }
+    
+    function toggleExpandChat() {
+      var panel = document.getElementById('floatingChat');
+      panel.classList.toggle('expanded');
+      lucide.createIcons();
+    }
+    
+    function toggleTheme() {
+      var body = document.body;
+      var isLight = body.getAttribute('data-theme') === 'light';
+      var btnIcon = document.querySelector('#btnThemeToggle i');
+      var lbl = document.getElementById('lblTheme');
+      var logoSidebar = document.getElementById('imgLogoSidebar');
+      
+      if (isLight) {
+        body.removeAttribute('data-theme');
+        btnIcon.setAttribute('data-lucide', 'sun');
+        lbl.innerText = 'Modo Claro';
+        // logoSidebar.src = "URL DEL LOGO PARA FONDO OSCURO SI ES DISTINTO";
+      } else {
+        body.setAttribute('data-theme', 'light');
+        btnIcon.setAttribute('data-lucide', 'moon');
+        lbl.innerText = 'Modo Oscuro';
+        // logoSidebar.src = "URL DEL LOGO PARA FONDO CLARO SI ES DISTINTO";
+      }
+      lucide.createIcons();
+    }
+
+    function saveBatch() {
+      if (magicParsedItems.length === 0) return;
+      var btn = document.getElementById('btnSaveMagic');
+      btn.disabled = true;
+      btn.innerHTML = '<i class="lucide-spin" data-lucide="loader"></i> Guardando...';
+      lucide.createIcons();
+      
+      var validItems = magicParsedItems.filter(function(x){ return x.type !== 'error'; });
+      
+      google.script.run
+        .withSuccessHandler(function(r) {
+          btn.disabled = false;
+          btn.innerHTML = '<i data-lucide="send"></i> Guardar Todo';
+          lucide.createIcons();
+          if (r && r.success) {
+            toast(r.message);
+            
+            // Cerrar el nuevo Panel Flotante en lugar del Modal viejo
+            var panel = document.getElementById('floatingChat');
+            panel.classList.remove('open');
+            panel.classList.remove('expanded');
+            
+            document.getElementById('magicInput').value = '';
+            document.getElementById('magicCardsContainer').classList.remove('active');
+            
+            // Actualización Local Batch
+            if (r.data) {
+              if (r.data.promesas.length) appData.promesas = appData.promesas.concat(r.data.promesas);
+              if (r.data.incidencias.length) appData.incidencias = appData.incidencias.concat(r.data.incidencias);
+              if (r.data.clientes.length) {
+                appData.clientes = appData.clientes.concat(r.data.clientes);
+                populateSelect('selPromCliente'); populateSelect('selIncCliente');
+              }
+              applyPromesaFilters();
+              applyIncidenciaFilters();
+              applyClienteFilters();
+              renderDashboard(appData);
+            } else {
+              loadAllData();
+            }
+          } else {
+            toast(r.message || 'Error', 'error');
+          }
+        })
+        .withFailureHandler(function(e) { 
+          btn.disabled = false; btn.innerHTML = '<i data-lucide="send"></i> Guardar Todo'; lucide.createIcons();
+          toast('Error: ' + e, 'error'); 
+        })
+        .processBatch(validItems);
+    }
+    // ═══════ GESTIÓN RÁPIDA PRO ⚡ ═══════
+    var quickListCustom = null;
+    var quickSessionState = {}; // { cliCod: { mandatory: '', optional: [], note: '' } }
+
+    function renderQuickActions(data) {
+      var list = document.getElementById('quickActionList');
+      if (!list) return;
+      list.innerHTML = '';
+      
+      var pending = [];
+      if (quickListCustom) {
+        pending = quickListCustom;
+      } else {
+        pending = data.incidencias.filter(function(i) { return (i[5]||'').toUpperCase() === 'PENDIENTE'; })
+                      .map(function(i) { return { cod: i[1], fact: i[2] }; });
+      }
+      
+      if (pending.length === 0) {
+        list.innerHTML = 
+          '<div style="padding:24px; text-align:center; color:var(--muted)">' +
+            'Todo al día ✓<br>' +
+            '<button class="btn btn-ghost btn-sm" style="margin-top:10px" onclick="toggleQuickLoader()">' +
+              '<i data-lucide="upload"></i> Cargar lista personalizada' +
+            '</button>' +
+          '</div>';
+        lucide.createIcons();
+        return;
+      }
+
+      var table = document.createElement('table');
+      table.className = 'quick-gest-table';
+      table.innerHTML = '<thead><tr><th>CLIENTE</th><th>ACCIONES / NOTA</th><th style="text-align:right">OK</th></tr></thead><tbody></tbody>';
+      var tbody = table.querySelector('tbody');
+      var hoyStr = new Date().toDateString();
+
+      pending.slice(0, 30).forEach(function(p) {
+        if (!quickSessionState[p.cod]) {
+          quickSessionState[p.cod] = { mandatory: '', optional: [], note: '' };
+        }
+        var state = quickSessionState[p.cod];
+        
+        var isManagedToday = (data.llamadas || []).some(function(l) { 
+           return l[2] === p.cod && new Date(l[1]).toDateString() === hoyStr; 
+        });
+        
+        var nombre = clienteName(p.cod); 
+        var tr = document.createElement('tr');
+        tr.className = 'quick-gest-row' + (isManagedToday ? ' managed' : '');
+        
+        var mandatoryBtns = [
+          { status: 'CONTESTÓ', icon: 'phone', cls: 'ok', title: 'Contestó' },
+          { status: 'NO CONTESTÓ', icon: 'phone-off', cls: 'no', title: 'No contestó' },
+          { status: 'AGENTE GESTIONA', icon: 'user-check', cls: 'mail', title: 'Agente Gestiona' },
+          { status: 'NO CONTACTADO', icon: 'user-x', cls: 'no', title: 'No Contactado' },
+          { status: 'VOLVER A LLAMAR', icon: 'clock', cls: 'wait', title: 'Volver a llamar' }
+        ];
+
+        var optionalBtns = [
+          { status: 'EC ENVIADO', icon: 'file-text', cls: 'mail', title: 'EC Enviado' }
+        ];
+
+        var mHtml = mandatoryBtns.map(function(b) {
+          var sel = state.mandatory === b.status ? 'selected' : '';
+          return '<button class="btn-fast mandatory '+b.cls+' '+sel+'" onclick="toggleFastAction(\''+p.cod+'\', \''+b.status+'\', true)" title="'+b.title+'"><i data-lucide="'+b.icon+'"></i></button>';
+        }).join('');
+
+        var oHtml = optionalBtns.map(function(b) {
+          var sel = state.optional.indexOf(b.status) !== -1 ? 'selected' : '';
+          return '<button class="btn-fast optional '+b.cls+' '+sel+'" onclick="toggleFastAction(\''+p.cod+'\', \''+b.status+'\', false)" title="'+b.title+'"><i data-lucide="'+b.icon+'"></i></button>';
+        }).join('');
+
+        tr.innerHTML = 
+          '<td style="width:250px">' +
+            '<div style="font-weight:700; color:var(--text); font-size:0.9rem">' + esc(nombre) + '</div>' +
+            '<div style="font-size:0.65rem; opacity:0.5">Cód: ' + esc(p.cod) + (p.fact ? ' &bull; ' + esc(p.fact) : '') + '</div>' +
+          '</td>' +
+          '<td>' +
+            '<div style="display:flex; flex-direction:column; gap:8px">' +
+              '<div class="gest-actions" style="display:flex; gap:6px; align-items:center">' +
+                mHtml +
+                '<div class="action-divider"></div>' +
+                oHtml +
+                '<button class="btn-fast optional" onclick="openMagicPromesa(\''+p.cod+'\')" title="Promesa de Pago" style="background:rgba(168, 85, 247, 0.1); color:#a855f7; border:none"><i data-lucide="calendar-plus"></i></button>' +
+                '<button class="btn-fast optional" onclick="openQuickIncidencia(\''+p.cod+'\')" title="Registrar Incidencia" style="background:rgba(255, 159, 64, 0.1); color:#ff9f40; border:none"><i data-lucide="alert-circle"></i></button>' +
+              '</div>' +
+              '<input type="text" class="quick-note-input" placeholder="Escribe tu nota aquí..." value="'+esc(state.note)+'" oninput="quickSessionState[\''+p.cod+'\'].note=this.value">' +
+            '</div>' +
+          '</td>' +
+          '<td style="text-align:right">' +
+            '<button class="btn-fast ok" onclick="saveQuickGest(\''+p.cod+'\')" style="width:40px; height:40px; border-radius:10px" title="Guardar Gestión"><i data-lucide="check-circle-2"></i></button>' +
+          '</td>';
+        tbody.appendChild(tr);
+      });
+      list.appendChild(table);
+      lucide.createIcons();
+    }
+
+    function toggleFastAction(cod, status, isMandatory) {
+      var state = quickSessionState[cod];
+      if (isMandatory) {
+        state.mandatory = (state.mandatory === status) ? '' : status;
+      } else {
+        var idx = state.optional.indexOf(status);
+        if (idx === -1) state.optional.push(status);
+        else state.optional.splice(idx, 1);
+      }
+      renderQuickActions(appData);
+    }
+
+    function saveQuickGest(cod) {
+      var state = quickSessionState[cod];
+      if (!state.mandatory) {
+        toast('Selecciona una acción obligatoria (Teléfono)', 'error');
+        return;
+      }
+
+      var finalNote = state.note;
+      if (state.optional.length > 0) {
+        finalNote += (finalNote ? " | " : "") + state.optional.join(" | ");
+      }
+
+      toast('Guardando gestión...');
+      google.script.run.withSuccessHandler(function(r) {
+        if (r.success) {
+          appData.llamadas.unshift(r.data);
+          // Limpiar estado de esta fila
+          delete quickSessionState[cod];
+          
+          // BUG FIX: Eliminar de la lista personalizada si existe para no perder progreso al refrescar
+          if (quickListCustom) {
+            quickListCustom = quickListCustom.filter(function(x) { return x.cod !== cod; });
+          }
+          
+          renderQuickActions(appData);
+          renderDashboard(appData);
+          toast('Gestión guardada exitosamente');
+        } else {
+          toast(r.message || 'Error al guardar', 'error');
+        }
+      }).saveLlamada({
+        clienteCod: cod,
+        resultado: state.mandatory,
+        notas: finalNote || 'Gestión rápida',
+        interventor: currentUser.email
+      });
+    }
+
+    function toggleQuickLoader() {
+      var el = document.getElementById('quickLoaderArea');
+      el.style.display = el.style.display === 'none' ? 'block' : 'none';
+    }
+
+    function processQuickMassLoad() {
+      var text = document.getElementById('quickMassText').value;
+      if (!text.trim()) { 
+        quickListCustom = null; 
+        renderQuickActions(appData); 
+        return; 
+      }
+      
+      var lines = text.split(/[\n,;]+/);
+      quickListCustom = [];
+      var foundCount = 0;
+      
+      lines.forEach(function(line) {
+        var cleanLine = line.trim();
+        if (!cleanLine) return;
+        
+        // Intentar match exacto por código primero
+        var client = appData.clientes.find(function(c) { 
+          return String(c[0]).toLowerCase() === cleanLine.toLowerCase(); 
+        });
+        
+        // Si no, búsqueda fuzzy
+        if (!client) {
+          var match = findClientFuzzy(cleanLine);
+          if (match) {
+            client = appData.clientes.find(function(c) { return c[0] === match.code; });
+          }
+        }
+        
+        if (client) {
+          quickListCustom.push({ cod: client[0], fact: 'PENDIENTE' });
+          foundCount++;
+        }
+      });
+      
+      if (foundCount > 0) {
+        toast('Se cargaron ' + foundCount + ' clientes.');
+        document.getElementById('quickLoaderArea').style.display = 'none';
+        document.getElementById('quickMassText').value = '';
+        renderQuickActions(appData);
+      } else {
+        toast('No se encontraron clientes válidos en el texto', 'error');
+      }
+    }
+
+    function resetQuickList() {
+      quickListCustom = null;
+      renderQuickActions(appData);
+      toast('Lista reseteada a pendientes automáticos');
+    }
+
+    function cleanNum(n) {
+      if (typeof n === 'number') return n;
+      // Tratar strings con comas como decimales y puntos como miles
+      return parseFloat(String(n || 0).replace(/[₡$ ]/g, '').replace(/\.(?=\d{3})/g, '').replace(',', '.'));
+    }
+
+    function fastGest(cod, res) {
+      var sNote = document.getElementById('sessionNote').value;
+      var payload = {
+        clienteCod: cod,
+        resultado: res,
+        interventor: currentUser ? currentUser.email : 'Sistema',
+        notas: sNote ? (sNote + ' (' + res + ')') : (res === 'EC ENVIADO' ? 'Envío de Estado de Cuenta.' : 'Gestión rápida Pro: ' + res)
+      };
+
+      google.script.run.withSuccessHandler(function(r) {
+        if (r.success) {
+          appData.llamadas.push(r.data);
+          renderDashboard(appData);
+          renderQuickActions(appData);
+          toast(res + ' para ' + clienteName(cod));
+        }
+      }).saveLlamada(payload);
+    }
+
+    function enviarInformeGestion() {
+      var btn = document.getElementById('btnEnviarInforme');
+      var oldText = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '<i class="lucide-spin" data-lucide="loader"></i> Enviando...';
+      lucide.createIcons();
+      
+      google.script.run
+        .withSuccessHandler(function(r) {
+          btn.disabled = false;
+          btn.innerHTML = oldText;
+          lucide.createIcons();
+          if (r.success) toast(r.message);
+          else toast(r.message, 'error');
+        })
+        .withFailureHandler(function(e) {
+          btn.disabled = false;
+          btn.innerHTML = oldText;
+          lucide.createIcons();
+          toast('Error de conexión', 'error');
+        })
+        .enviarInformeGestion(currentUser ? currentUser.email : null);
+    }
+
+    // AUTO-REFRESCO SILENCIOSO CADA 5 MINUTOS 🔄
+    setInterval(function() {
+      console.log('Iniciando auto-sincronización...');
+      loadAllData();
+    }, 5 * 60 * 1000);
+
+    // Inicialización al cargar la página
+    window.onload = function() {
+      loadAllData();
+    };
+  </script>
+</body>
+</html>
