@@ -414,9 +414,27 @@
           </label>
 
           <div id="newIncEmailPanel" style="display:none; animation: fadeInUp 0.3s ease;">
+
+            <!-- Plantillas rápidas -->
+            <div class="form-group" style="display:flex; gap:8px; align-items:flex-end; flex-wrap:wrap">
+              <div style="flex:1; min-width:200px">
+                <label>Plantilla de correo</label>
+                <select id="newIncMailTemplate" onchange="loadEmailTemplate(this.value,'newIncMailSubject','newIncMailBody')" style="width:100%">
+                  <option value="">— Sin plantilla —</option>
+                </select>
+              </div>
+              <button type="button" class="btn btn-ghost" style="height:42px; padding:0 14px; font-size:0.8rem; white-space:nowrap" onclick="saveEmailTemplate('newIncMailSubject','newIncMailBody')">
+                <i data-lucide="bookmark-plus" style="width:14px; height:14px"></i> Guardar plantilla
+              </button>
+            </div>
+
             <div class="form-group">
-              <label>Destinatario(s)</label>
-              <input type="text" id="newIncMailTo" placeholder="ejemplo@correo.com; otro@correo.com">
+              <label>Destinatario(s) <span style="color:var(--muted); font-weight:400">— separar con punto y coma</span></label>
+              <input type="text" id="newIncMailTo" placeholder="cliente@ejemplo.com; otro@correo.com">
+            </div>
+            <div class="form-group">
+              <label>Con Copia (CC) <span style="color:var(--muted); font-weight:400">— jdiaz@cofersa.cr se agrega automáticamente</span></label>
+              <input type="text" id="newIncMailCc" placeholder="supervisor@cofersa.cr; otro@cofersa.cr">
             </div>
             <div class="form-group">
               <label>Asunto</label>
@@ -429,8 +447,10 @@
                 <button type="button" class="btn-mini" onclick="insertTagRich('newIncMailBody','{{CLIENTE}}')" style="background:rgba(0,174,239,0.1); color:var(--accent); border:none; padding:4px 10px; border-radius:6px; font-size:0.75rem; cursor:pointer">{{CLIENTE}}</button>
                 <button type="button" class="btn-mini" onclick="insertTagRich('newIncMailBody','{{FACTURA}}')" style="background:rgba(255,159,64,0.1); color:#ff9f40; border:none; padding:4px 10px; border-radius:6px; font-size:0.75rem; cursor:pointer">{{FACTURA}}</button>
                 <button type="button" class="btn-mini" onclick="insertTagRich('newIncMailBody','{{FECHA}}')" style="background:rgba(168,85,247,0.1); color:#a855f7; border:none; padding:4px 10px; border-radius:6px; font-size:0.75rem; cursor:pointer">{{FECHA}}</button>
+                <button type="button" class="btn-mini" onclick="insertTagRich('newIncMailBody','{{MONTO}}')" style="background:rgba(34,197,94,0.1); color:#22c55e; border:none; padding:4px 10px; border-radius:6px; font-size:0.75rem; cursor:pointer">{{MONTO}}</button>
+                <button type="button" class="btn-mini" onclick="insertTagRich('newIncMailBody','{{MOTIVO}}')" style="background:rgba(249,115,22,0.1); color:#f97316; border:none; padding:4px 10px; border-radius:6px; font-size:0.75rem; cursor:pointer">{{MOTIVO}}</button>
               </div>
-              <div id="newIncMailBody" class="rich-email-editor" contenteditable="true" data-placeholder="Escribe el cuerpo del correo... Puedes pegar imagenes directamente aqui (Ctrl+V)"></div>
+              <div id="newIncMailBody" class="rich-email-editor" contenteditable="true" data-placeholder="Escribe el cuerpo del correo... Pega imagenes directamente (Ctrl+V)"></div>
               <div style="font-size:0.65rem; color:var(--muted); margin-top:6px; display:flex; align-items:center; gap:4px">
                 <i data-lucide="image" style="width:12px; height:12px"></i> Tip: Pega imagenes del portapapeles directamente en el editor
               </div>
@@ -548,9 +568,27 @@
         </label>
 
         <div id="emailPanel" style="display:none; animation: fadeInUp 0.3s ease;">
+
+          <!-- Plantillas rápidas -->
+          <div class="form-group" style="display:flex; gap:8px; align-items:flex-end; flex-wrap:wrap">
+            <div style="flex:1; min-width:200px">
+              <label>Plantilla de correo</label>
+              <select id="incMailTemplate" onchange="loadEmailTemplate(this.value,'incMailSubject','incMailBody')" style="width:100%">
+                <option value="">— Sin plantilla —</option>
+              </select>
+            </div>
+            <button type="button" class="btn btn-ghost" style="height:42px; padding:0 14px; font-size:0.8rem; white-space:nowrap" onclick="saveEmailTemplate('incMailSubject','incMailBody')">
+              <i data-lucide="bookmark-plus" style="width:14px; height:14px"></i> Guardar plantilla
+            </button>
+          </div>
+
           <div class="form-group">
-            <label>Destinatario(s)</label>
-            <input type="text" id="incMailTo" placeholder="ejemplo@correo.com; jefe@correo.com">
+            <label>Destinatario(s) <span style="color:var(--muted); font-weight:400">— separar con punto y coma</span></label>
+            <input type="text" id="incMailTo" placeholder="cliente@ejemplo.com; otro@correo.com">
+          </div>
+          <div class="form-group">
+            <label>Con Copia (CC) <span style="color:var(--muted); font-weight:400">— jdiaz@cofersa.cr se agrega automáticamente</span></label>
+            <input type="text" id="incMailCc" placeholder="supervisor@cofersa.cr; otro@cofersa.cr">
           </div>
           <div class="form-group">
             <label>Asunto</label>
@@ -563,8 +601,10 @@
               <button type="button" class="btn-mini" onclick="insertTagRich('incMailBody','{{CLIENTE}}')" style="background:rgba(0,174,239,0.1); color:var(--accent); border:none; padding:4px 10px; border-radius:6px; font-size:0.75rem; cursor:pointer">{{CLIENTE}}</button>
               <button type="button" class="btn-mini" onclick="insertTagRich('incMailBody','{{FACTURA}}')" style="background:rgba(255,159,64,0.1); color:#ff9f40; border:none; padding:4px 10px; border-radius:6px; font-size:0.75rem; cursor:pointer">{{FACTURA}}</button>
               <button type="button" class="btn-mini" onclick="insertTagRich('incMailBody','{{FECHA}}')" style="background:rgba(168,85,247,0.1); color:#a855f7; border:none; padding:4px 10px; border-radius:6px; font-size:0.75rem; cursor:pointer">{{FECHA}}</button>
+              <button type="button" class="btn-mini" onclick="insertTagRich('incMailBody','{{MONTO}}')" style="background:rgba(34,197,94,0.1); color:#22c55e; border:none; padding:4px 10px; border-radius:6px; font-size:0.75rem; cursor:pointer">{{MONTO}}</button>
+              <button type="button" class="btn-mini" onclick="insertTagRich('incMailBody','{{MOTIVO}}')" style="background:rgba(249,115,22,0.1); color:#f97316; border:none; padding:4px 10px; border-radius:6px; font-size:0.75rem; cursor:pointer">{{MOTIVO}}</button>
             </div>
-            <div id="incMailBody" class="rich-email-editor" contenteditable="true" data-placeholder="Escribe el cuerpo del correo... Puedes pegar imagenes directamente aqui (Ctrl+V)"></div>
+            <div id="incMailBody" class="rich-email-editor" contenteditable="true" data-placeholder="Escribe el cuerpo del correo... Pega imagenes directamente (Ctrl+V)"></div>
             <div style="font-size:0.65rem; color:var(--muted); margin-top:6px; display:flex; align-items:center; gap:4px">
               <i data-lucide="image" style="width:12px; height:12px"></i> Tip: Pega imagenes del portapapeles directamente en el editor
             </div>
@@ -1272,12 +1312,17 @@
         interventor: currentUser.email,
         // Datos de correo
         sendEmail: document.getElementById('incSendEmail').checked,
-        emailData: {
-          to: document.getElementById('incMailTo').value,
-          subject: document.getElementById('incMailSubject').value,
-          body: document.getElementById('incMailBody').innerHTML,
-          inlineImages: extractInlineImages('incMailBody')
-        }
+        emailData: (function() {
+          // Primero extraer (muta img.src a cid:), luego leer innerHTML
+          var imgs = extractInlineImages('incMailBody');
+          return {
+            to: document.getElementById('incMailTo').value,
+            cc: document.getElementById('incMailCc').value,
+            subject: document.getElementById('incMailSubject').value,
+            body: document.getElementById('incMailBody').innerHTML,
+            inlineImages: imgs
+          };
+        })()
       };
 
       // Si hay archivo, leerlo como base64
@@ -1690,14 +1735,17 @@
         fd.sendEmail = sendEmail;
 
         if (sendEmail) {
+          // IMPORTANTE: primero extractInlineImages (muta img.src a cid:...)
+          // luego leer innerHTML (así el body ya trae las referencias cid:)
+          var inlineImages = extractInlineImages('newIncMailBody');
+
           fd.emailData = {
             to: document.getElementById('newIncMailTo').value,
+            cc: document.getElementById('newIncMailCc').value,
             subject: document.getElementById('newIncMailSubject').value,
-            body: document.getElementById('newIncMailBody').innerHTML
+            body: document.getElementById('newIncMailBody').innerHTML,
+            inlineImages: inlineImages
           };
-
-          // Extraer imágenes inline como adjuntos embebidos
-          fd.emailData.inlineImages = extractInlineImages('newIncMailBody');
 
           // Adjunto de archivo
           var fileInput = document.getElementById('newIncMailFile');
@@ -1759,6 +1807,9 @@
           if (client && client[3]) document.getElementById('newIncMailTo').value = client[3];
           document.getElementById('newIncMailSubject').value = 'Seguimiento de Incidencia - Factura ' + fact + ' - ' + clienteName(cod);
         }
+        // Auto-seleccionar canal = Correo
+        var canalSel = document.querySelector('#formIncidencia [name="canal"]');
+        if (canalSel && !canalSel.value) canalSel.value = 'Correo';
         lucide.createIcons();
       }
     }
@@ -1828,6 +1879,56 @@
         }
       }
     });
+
+    // ═══════ PLANTILLAS DE CORREO ═══════
+    var emailTemplatesCache = [];
+
+    function loadEmailTemplatesDropdowns() {
+      google.script.run
+        .withSuccessHandler(function(templates) {
+          emailTemplatesCache = templates || [];
+          ['newIncMailTemplate', 'incMailTemplate'].forEach(function(selId) {
+            var sel = document.getElementById(selId);
+            if (!sel) return;
+            // Limpiar opciones existentes (excepto la primera)
+            while (sel.options.length > 1) sel.remove(1);
+            emailTemplatesCache.forEach(function(t) {
+              var opt = document.createElement('option');
+              opt.value = t[0]; // ID
+              opt.textContent = t[1]; // Nombre
+              sel.appendChild(opt);
+            });
+          });
+        })
+        .getPlantillasCorreo();
+    }
+
+    function loadEmailTemplate(id, subjectId, bodyId) {
+      if (!id) return;
+      var t = emailTemplatesCache.find(function(x) { return String(x[0]) === String(id); });
+      if (!t) return;
+      document.getElementById(subjectId).value = t[2] || '';
+      document.getElementById(bodyId).innerHTML = t[3] || '';
+    }
+
+    function saveEmailTemplate(subjectId, bodyId) {
+      var nombre = prompt('Nombre para esta plantilla:');
+      if (!nombre || !nombre.trim()) return;
+      var subject = document.getElementById(subjectId).value;
+      var body = document.getElementById(bodyId).innerHTML;
+      if (!subject && !body) { toast('El asunto y mensaje están vacíos', 'error'); return; }
+      google.script.run
+        .withSuccessHandler(function(r) {
+          if (r && r.success === false) { toast(r.message, 'error'); return; }
+          toast('Plantilla "' + nombre + '" guardada');
+          loadEmailTemplatesDropdowns();
+        })
+        .withFailureHandler(function(e) { toast('Error: ' + e, 'error'); })
+        .savePlantillaCorreo({ nombre: nombre.trim(), asunto: subject, cuerpo: body });
+    }
+
+    // Cargar plantillas al iniciar
+    loadEmailTemplatesDropdowns();
 
     // ═══════ ASISTENTE NLP MÁGICO V2 ═══════
     var magicParsedItems = [];

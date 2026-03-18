@@ -311,6 +311,80 @@ function savePromesa(promesa) {
   }
 }
 
+// ═══════════════════════════════════════════════════════════
+// PLANTILLAS DE CORREO
+// Sheet "PlantillasCorreo": ID(0), NOMBRE(1), ASUNTO(2), CUERPO(3)
+// ═══════════════════════════════════════════════════════════
+function getOrCreatePlantillasSheet(ss) {
+  var ws = ss.getSheetByName('PlantillasCorreo');
+  if (!ws) {
+    ws = ss.insertSheet('PlantillasCorreo');
+    ws.appendRow(['ID', 'NOMBRE', 'ASUNTO', 'CUERPO']);
+    ws.getRange(1, 1, 1, 4).setFontWeight('bold');
+    // Plantillas de ejemplo predefinidas
+    ws.appendRow([
+      'TPL-1',
+      'Incidencia Pendiente',
+      'Incidencia Pendiente - Factura {{FACTURA}}',
+      '<p>Estimado/a {{CLIENTE}},</p><p>Le informamos que hemos registrado una incidencia relacionada a la factura <strong>{{FACTURA}}</strong> con fecha {{FECHA}}.</p><p>Estamos trabajando en su resolución y le mantendremos informado/a.</p><p>Atentamente,<br>Equipo COFERSA</p>'
+    ]);
+    ws.appendRow([
+      'TPL-2',
+      'Solicitud de Pago',
+      'Recordatorio de Saldo Pendiente - Factura {{FACTURA}}',
+      '<p>Estimado/a {{CLIENTE}},</p><p>Le recordamos que tiene un saldo pendiente de <strong>{{MONTO}}</strong> correspondiente a la factura <strong>{{FACTURA}}</strong>.</p><p>Le solicitamos gestionar el pago a la brevedad posible.</p><p>Si ya realizó el pago, por favor ignore este mensaje.</p><p>Atentamente,<br>Departamento de Cobros COFERSA</p>'
+    ]);
+    ws.appendRow([
+      'TPL-3',
+      'Resolución de Incidencia',
+      'Resolución de Incidencia - Factura {{FACTURA}}',
+      '<p>Estimado/a {{CLIENTE}},</p><p>Nos complace informarle que la incidencia registrada el {{FECHA}} relacionada a la factura <strong>{{FACTURA}}</strong> ha sido <strong>resuelta satisfactoriamente</strong>.</p><p>Motivo original: {{MOTIVO}}.</p><p>Gracias por su comprensión.</p><p>Atentamente,<br>Equipo COFERSA</p>'
+    ]);
+  }
+  return ws;
+}
+
+function getPlantillasCorreo() {
+  try {
+    var ss = getDatabaseSheet();
+    var ws = getOrCreatePlantillasSheet(ss);
+    var vals = ws.getDataRange().getValues();
+    // Saltar encabezado, devolver filas con ID real
+    return vals.slice(1).filter(function(r) { return r[0] && String(r[0]).trim(); });
+  } catch (e) {
+    return [];
+  }
+}
+
+function savePlantillaCorreo(data) {
+  try {
+    var ss = getDatabaseSheet();
+    var ws = getOrCreatePlantillasSheet(ss);
+    var id = 'TPL-' + new Date().getTime();
+    ws.appendRow([id, String(data.nombre || ''), String(data.asunto || ''), String(data.cuerpo || '')]);
+    return { success: true, message: 'Plantilla guardada.' };
+  } catch (e) {
+    return { success: false, message: e.message };
+  }
+}
+
+function deletePlantillaCorreo(id) {
+  try {
+    var ss = getDatabaseSheet();
+    var ws = getOrCreatePlantillasSheet(ss);
+    var vals = ws.getDataRange().getValues();
+    for (var i = 1; i < vals.length; i++) {
+      if (String(vals[i][0]) === String(id)) {
+        ws.deleteRow(i + 1);
+        return { success: true };
+      }
+    }
+    return { success: false, message: 'Plantilla no encontrada.' };
+  } catch (e) {
+    return { success: false, message: e.message };
+  }
+}
+
 function saveIncidencia(inc) {
   try {
     var ss = getDatabaseSheet();
@@ -322,13 +396,20 @@ function saveIncidencia(inc) {
     var linkGmail = String(inc.linkGmail || '');
 
     // Si se pidió enviar correo, procesarlo antes de guardar
+    var emailError = '';
     if (inc.sendEmail && inc.emailData && inc.emailData.to) {
-      var emailLink = enviarCorreoIncidenciaConImagenes({
-        clienteCod: inc.clienteCod,
-        factura: factura,
-        emailData: inc.emailData
-      }, ss);
-      if (emailLink) linkGmail = emailLink;
+      try {
+        var emailLink = enviarCorreoIncidenciaConImagenes({
+          clienteCod: inc.clienteCod,
+          factura: factura,
+          monto: inc.monto,
+          motivo: inc.motivo,
+          emailData: inc.emailData
+        }, ss);
+        if (emailLink) linkGmail = emailLink;
+      } catch (emailErr) {
+        emailError = emailErr.message;
+      }
     }
 
     // Esquema 10 cols: ID(0), CLIENTE_COD(1), FACTURA(2), MONTO(3), MOTIVO(4), ESTADO(5), CANAL(6), LINK_GMAIL(7), FECHA(8), INTERVENTOR(9)
@@ -360,8 +441,11 @@ function saveIncidencia(inc) {
     ];
 
     var msg = 'Incidencia registrada.';
-    if (inc.sendEmail && linkGmail) msg += ' Correo enviado con enlace de seguimiento.';
-    else if (inc.sendEmail) msg += ' Correo enviado (no se pudo obtener enlace).';
+    if (inc.sendEmail) {
+      if (emailError) msg += ' ⚠️ Error al enviar correo: ' + emailError;
+      else if (linkGmail) msg += ' ✓ Correo enviado con enlace de seguimiento.';
+      else msg += ' ✓ Correo enviado (enlace no disponible).';
+    }
 
     return { success: true, message: msg, data: rowUi };
   } catch (e) {
@@ -713,8 +797,14 @@ function updateIncidenciaCompleta(data) {
     var newLink = data.link;
 
     // Procesar correo si está marcado (usa versión con soporte de imágenes)
+    var emailMsg = '';
     if (data.sendEmail && data.emailData) {
-      newLink = enviarCorreoIncidenciaConImagenes(data, ss);
+      try {
+        newLink = enviarCorreoIncidenciaConImagenes(data, ss) || newLink;
+        emailMsg = newLink ? ' ✓ Correo enviado con enlace.' : ' ✓ Correo enviado.';
+      } catch (emailErr) {
+        emailMsg = ' ⚠️ Error al enviar correo: ' + emailErr.message;
+      }
     }
 
     // ID(0), CLIENTE_COD(1), FACTURA(2), MONTO(3), MOTIVO(4), ESTADO(5), CANAL(6), LINK_GMAIL(7), FECHA(8), INTERVENTOR(9)
@@ -725,8 +815,8 @@ function updateIncidenciaCompleta(data) {
     sheet.getRange(foundIndex, 6).setValue(String(data.estado || 'PENDIENTE'));
     sheet.getRange(foundIndex, 7).setValue(String(data.canal || 'No definido'));
     sheet.getRange(foundIndex, 8).setValue(String(newLink || ''));
-    
-    return { success: true, message: 'Incidencia actualizada.', newLink: newLink };
+
+    return { success: true, message: 'Incidencia actualizada.' + emailMsg, newLink: newLink };
   } catch (e) {
     console.error('Error en updateIncidenciaCompleta:', e);
     return { success: false, message: e.message };
@@ -786,41 +876,60 @@ function enviarCorreoIncidencia(data, ss) {
   return '';
 }
 
-// Versión mejorada: soporta imágenes inline (pegadas en el editor)
+// Enviar correo con soporte de imágenes inline y CC dinámico
+// Lanza excepción en vez de atrapar silenciosamente para que el caller pueda reportar al usuario
 function enviarCorreoIncidenciaConImagenes(data, ss) {
   var e = data.emailData;
-  var body = e.body;
-  var subject = e.subject;
+  if (!e || !e.to) throw new Error('Falta destinatario del correo');
 
-  // Reemplazar etiquetas mágicas
+  var body = String(e.body || '');
+  var subject = String(e.subject || 'Seguimiento de Incidencia');
+
+  // Resolver etiquetas dinámicas
   var clienteNombre = 'Cliente';
+  var monto = String(data.monto || '');
+  var motivo = String(data.motivo || '');
   var clientes = ss.getSheetByName('Clientes').getDataRange().getValues();
   for (var i = 1; i < clientes.length; i++) {
     if (String(clientes[i][0]) === String(data.clienteCod)) {
       clienteNombre = clientes[i][1];
+      if (!monto) monto = String(clientes[i][3] || '');
       break;
     }
   }
 
   var hoy = new Date().toLocaleDateString('es-CR');
 
-  // Limpiar tags HTML de las etiquetas dinámicas (vienen como <span>)
-  body = body.replace(/<span[^>]*class="email-dynamic-tag"[^>]*>([^<]+)<\/span>/g, '$1');
+  // Limpiar tags HTML de etiquetas dinámicas (vienen como <span class="email-dynamic-tag">)
+  body = body.replace(/<span[^>]*class="email-dynamic-tag"[^>]*>([^<]*)<\/span>/g, '$1');
 
-  body = body.replace(/\{\{CLIENTE\}\}/g, clienteNombre)
-             .replace(/\{\{FACTURA\}\}/g, data.factura || 'S/N')
-             .replace(/\{\{FECHA\}\}/g, hoy);
+  var replaceTags = function(str) {
+    return str
+      .replace(/\{\{CLIENTE\}\}/g, clienteNombre)
+      .replace(/\{\{FACTURA\}\}/g, data.factura || 'S/N')
+      .replace(/\{\{FECHA\}\}/g, hoy)
+      .replace(/\{\{MONTO\}\}/g, monto ? '₡' + Number(monto).toLocaleString('es-CR') : 'S/M')
+      .replace(/\{\{MOTIVO\}\}/g, motivo || 'Sin especificar');
+  };
 
-  subject = subject.replace(/\{\{CLIENTE\}\}/g, clienteNombre)
-                   .replace(/\{\{FACTURA\}\}/g, data.factura || 'S/N')
-                   .replace(/\{\{FECHA\}\}/g, hoy);
+  body = replaceTags(body);
+  subject = replaceTags(subject);
+
+  // CC: campo del form tiene prioridad; fallback a jdiaz
+  var ccList = [String(e.cc || '').trim(), 'jdiaz@cofersa.cr']
+    .filter(function(x) { return x; })
+    .join(', ');
+  // Eliminar duplicados básicos
+  var ccUniq = ccList.split(',').map(function(x) { return x.trim().toLowerCase(); })
+    .filter(function(x, idx, arr) { return x && arr.indexOf(x) === idx; })
+    .join(', ');
 
   var options = {
     htmlBody: body,
-    cc: "jdiaz@cofersa.cr"
+    cc: ccUniq
   };
 
-  // Procesar imágenes inline (pegadas en el editor)
+  // Imágenes inline (pegadas en el editor, ya con src="cid:img_N")
   if (e.inlineImages && e.inlineImages.length > 0) {
     var inlineImgs = {};
     e.inlineImages.forEach(function(img) {
@@ -833,32 +942,28 @@ function enviarCorreoIncidenciaConImagenes(data, ss) {
     options.inlineImages = inlineImgs;
   }
 
-  // Manejar adjunto de archivo si existe
+  // Adjunto de archivo
   if (e.attachment) {
-    var blob = Utilities.newBlob(
+    options.attachments = [Utilities.newBlob(
       Utilities.base64Decode(e.attachment.content),
       e.attachment.mimeType,
       e.attachment.name
-    );
-    options.attachments = [blob];
+    )];
   }
 
-  try {
-    // Extraer texto plano del HTML para el body alternativo
-    var plainText = body.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').trim();
-    GmailApp.sendEmail(e.to, subject, plainText, options);
+  // Texto plano fallback
+  var plainText = body.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').trim();
 
-    // Obtener enlace de seguimiento
-    Utilities.sleep(2000);
-    var threads = GmailApp.search('to:' + e.to + ' subject:"' + subject + '"', 0, 1);
-    if (threads && threads.length > 0) {
-      var lastMsg = threads[0].getMessages().pop();
-      return 'https://mail.google.com/mail/u/0/#search/rfc822msgid:' + lastMsg.getId();
-    }
-  } catch (err) {
-    console.error('Error enviando correo con imágenes:', err);
+  // Enviar — si falla, lanza excepción (el caller la manejará)
+  GmailApp.sendEmail(e.to, subject, plainText, options);
+
+  // Obtener enlace del hilo en Enviados
+  Utilities.sleep(2000);
+  var threads = GmailApp.search('to:' + e.to.split(';')[0].trim() + ' subject:"' + subject + '"', 0, 1);
+  if (threads && threads.length > 0) {
+    var lastMsg = threads[0].getMessages().pop();
+    return 'https://mail.google.com/mail/u/0/#search/rfc822msgid:' + lastMsg.getId();
   }
-
   return '';
 }
 
