@@ -862,12 +862,11 @@ function enviarCorreoIncidencia(data, ss) {
   try {
     GmailApp.sendEmail(e.to, subject, body, options);
     
-    // Obtener enlace de seguimiento (directo al mensaje)
-    Utilities.sleep(1500); // Esperar a que se procese en la bandeja de enviados
+    // Obtener enlace directo al hilo en Enviados
+    Utilities.sleep(1500);
     var threads = GmailApp.search('to:' + e.to + ' subject:"' + subject + '"', 0, 1);
     if (threads && threads.length > 0) {
-      var lastMsg = threads[0].getMessages().pop();
-      return 'https://mail.google.com/mail/u/0/#search/rfc822msgid:' + lastMsg.getId();
+      return 'https://mail.google.com/mail/u/0/#sent/' + threads[0].getId();
     }
   } catch(err) {
     console.error('Error enviando correo:', err);
@@ -957,12 +956,11 @@ function enviarCorreoIncidenciaConImagenes(data, ss) {
   // Enviar — si falla, lanza excepción (el caller la manejará)
   GmailApp.sendEmail(e.to, subject, plainText, options);
 
-  // Obtener enlace del hilo en Enviados
+  // Obtener enlace directo al hilo en Enviados (thread ID funciona directamente en la URL de Gmail)
   Utilities.sleep(2000);
   var threads = GmailApp.search('to:' + e.to.split(';')[0].trim() + ' subject:"' + subject + '"', 0, 1);
   if (threads && threads.length > 0) {
-    var lastMsg = threads[0].getMessages().pop();
-    return 'https://mail.google.com/mail/u/0/#search/rfc822msgid:' + lastMsg.getId();
+    return 'https://mail.google.com/mail/u/0/#sent/' + threads[0].getId();
   }
   return '';
 }
