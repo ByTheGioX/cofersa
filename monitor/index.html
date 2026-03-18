@@ -402,7 +402,46 @@
           </select>
         </div>
         <div class="form-group"><label>Motivo</label><input type="text" name="motivo" placeholder="Ej: Devolución" required></div>
-        <div class="form-group"><label>Link Gmail</label><input type="url" name="linkGmail" placeholder="https://mail.google.com/..."></div>
+
+        <!-- SECCIÓN DE CORREO INTEGRADA EN CREACIÓN -->
+        <div class="email-create-section" style="margin-top:20px; border-top:1px dashed var(--border); padding-top:20px;">
+          <label style="display:flex; align-items:center; gap:8px; cursor:pointer; margin-bottom:15px; background:rgba(0,174,239,0.05); padding:12px; border-radius:10px; border:1px solid rgba(0,174,239,0.15)">
+            <input type="checkbox" id="newIncSendEmail" onchange="toggleNewIncEmailPanel(this.checked)" style="width:18px; height:18px; accent-color:var(--accent)">
+            <div>
+              <span style="font-weight:700; color:var(--accent); font-size:0.95rem">Enviar correo de seguimiento</span>
+              <span style="display:block; font-size:0.72rem; color:var(--muted); margin-top:2px">El enlace del correo se guardará como link de seguimiento</span>
+            </div>
+          </label>
+
+          <div id="newIncEmailPanel" style="display:none; animation: fadeInUp 0.3s ease;">
+            <div class="form-group">
+              <label>Destinatario(s)</label>
+              <input type="text" id="newIncMailTo" placeholder="ejemplo@correo.com; otro@correo.com">
+            </div>
+            <div class="form-group">
+              <label>Asunto</label>
+              <input type="text" id="newIncMailSubject" placeholder="Seguimiento de Incidencia - Factura...">
+            </div>
+            <div class="form-group">
+              <label>Mensaje</label>
+              <div class="email-toolbar" style="margin-bottom:8px; display:flex; gap:6px; flex-wrap:wrap; align-items:center">
+                <span style="font-size:0.65rem; color:var(--muted); font-weight:700; text-transform:uppercase; letter-spacing:0.5px">Etiquetas:</span>
+                <button type="button" class="btn-mini" onclick="insertTagRich('newIncMailBody','{{CLIENTE}}')" style="background:rgba(0,174,239,0.1); color:var(--accent); border:none; padding:4px 10px; border-radius:6px; font-size:0.75rem; cursor:pointer">{{CLIENTE}}</button>
+                <button type="button" class="btn-mini" onclick="insertTagRich('newIncMailBody','{{FACTURA}}')" style="background:rgba(255,159,64,0.1); color:#ff9f40; border:none; padding:4px 10px; border-radius:6px; font-size:0.75rem; cursor:pointer">{{FACTURA}}</button>
+                <button type="button" class="btn-mini" onclick="insertTagRich('newIncMailBody','{{FECHA}}')" style="background:rgba(168,85,247,0.1); color:#a855f7; border:none; padding:4px 10px; border-radius:6px; font-size:0.75rem; cursor:pointer">{{FECHA}}</button>
+              </div>
+              <div id="newIncMailBody" class="rich-email-editor" contenteditable="true" data-placeholder="Escribe el cuerpo del correo... Puedes pegar imagenes directamente aqui (Ctrl+V)"></div>
+              <div style="font-size:0.65rem; color:var(--muted); margin-top:6px; display:flex; align-items:center; gap:4px">
+                <i data-lucide="image" style="width:12px; height:12px"></i> Tip: Pega imagenes del portapapeles directamente en el editor
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Adjuntar Archivo (Opcional)</label>
+              <input type="file" id="newIncMailFile" class="session-input" style="padding:8px; width:100%">
+            </div>
+          </div>
+        </div>
+
         <div class="form-actions">
           <button type="submit" class="btn btn-accent btn-full" id="btnSaveInc"><i data-lucide="save"></i> Guardar Incidencia</button>
           <button type="button" class="btn btn-ghost btn-full" onclick="closeModal('modalIncidencia')">Cancelar</button>
@@ -498,14 +537,17 @@
         <input type="text" id="incLink" placeholder="URL al hilo de correo / ticket">
       </div>
 
-      <!-- 📧 SECCIÓN DE CORREO PRO 💎 -->
+      <!-- SECCIÓN DE CORREO PRO (Edición) -->
       <div class="email-pro-section" style="margin-top:20px; border-top:1px dashed var(--border); padding-top:20px;">
-        <label style="display:flex; align-items:center; gap:8px; cursor:pointer; margin-bottom:15px; background:rgba(255,255,255,0.03); padding:10px; border-radius:8px">
-          <input type="checkbox" id="incSendEmail" onchange="toggleEmailPanel(this.checked)" style="width:18px; height:18px">
-          <span style="font-weight:700; color:var(--accent)">¿Enviar correo de seguimiento? 📧</span>
+        <label style="display:flex; align-items:center; gap:8px; cursor:pointer; margin-bottom:15px; background:rgba(0,174,239,0.05); padding:12px; border-radius:10px; border:1px solid rgba(0,174,239,0.15)">
+          <input type="checkbox" id="incSendEmail" onchange="toggleEmailPanel(this.checked)" style="width:18px; height:18px; accent-color:var(--accent)">
+          <div>
+            <span style="font-weight:700; color:var(--accent); font-size:0.95rem">Enviar correo de seguimiento</span>
+            <span style="display:block; font-size:0.72rem; color:var(--muted); margin-top:2px">El enlace del correo se actualizará como link de seguimiento</span>
+          </div>
         </label>
 
-        <div id="emailPanel" style="display:none; animation: slideDown 0.3s ease;">
+        <div id="emailPanel" style="display:none; animation: fadeInUp 0.3s ease;">
           <div class="form-group">
             <label>Destinatario(s)</label>
             <input type="text" id="incMailTo" placeholder="ejemplo@correo.com; jefe@correo.com">
@@ -515,17 +557,21 @@
             <input type="text" id="incMailSubject" placeholder="Seguimiento de Incidencia">
           </div>
           <div class="form-group">
-            <label>Mensaje (Usa etiquetas dinámicas)</label>
-            <div class="email-toolbar" style="margin-bottom:8px; display:flex; gap:6px; flex-wrap:wrap">
-              <button class="btn-mini" onclick="insertTag('{{CLIENTE}}')" title="Insertar nombre del cliente" style="background:rgba(0,212,255,0.1); color:var(--accent); border:none">👤 Cliente</button>
-              <button class="btn-mini" onclick="insertTag('{{FACTURA}}')" title="Insertar número de factura" style="background:rgba(255,159,64,0.1); color:#ff9f40; border:none">📄 Factura</button>
-              <button class="btn-mini" onclick="insertTag('{{FECHA}}')" title="Insertar fecha actual" style="background:rgba(168,85,247,0.1); color:#a855f7; border:none">📅 Fecha</button>
+            <label>Mensaje</label>
+            <div class="email-toolbar" style="margin-bottom:8px; display:flex; gap:6px; flex-wrap:wrap; align-items:center">
+              <span style="font-size:0.65rem; color:var(--muted); font-weight:700; text-transform:uppercase; letter-spacing:0.5px">Etiquetas:</span>
+              <button type="button" class="btn-mini" onclick="insertTagRich('incMailBody','{{CLIENTE}}')" style="background:rgba(0,174,239,0.1); color:var(--accent); border:none; padding:4px 10px; border-radius:6px; font-size:0.75rem; cursor:pointer">{{CLIENTE}}</button>
+              <button type="button" class="btn-mini" onclick="insertTagRich('incMailBody','{{FACTURA}}')" style="background:rgba(255,159,64,0.1); color:#ff9f40; border:none; padding:4px 10px; border-radius:6px; font-size:0.75rem; cursor:pointer">{{FACTURA}}</button>
+              <button type="button" class="btn-mini" onclick="insertTagRich('incMailBody','{{FECHA}}')" style="background:rgba(168,85,247,0.1); color:#a855f7; border:none; padding:4px 10px; border-radius:6px; font-size:0.75rem; cursor:pointer">{{FECHA}}</button>
             </div>
-            <textarea id="incMailBody" style="min-height:150px; font-family: 'Inter', sans-serif;" placeholder="Escribe el cuerpo del correo aquí..."></textarea>
+            <div id="incMailBody" class="rich-email-editor" contenteditable="true" data-placeholder="Escribe el cuerpo del correo... Puedes pegar imagenes directamente aqui (Ctrl+V)"></div>
+            <div style="font-size:0.65rem; color:var(--muted); margin-top:6px; display:flex; align-items:center; gap:4px">
+              <i data-lucide="image" style="width:12px; height:12px"></i> Tip: Pega imagenes del portapapeles directamente en el editor
+            </div>
           </div>
           <div class="form-group">
             <label>Adjuntar Archivo (Opcional)</label>
-            <input type="file" id="incMailFile" class="session-input" style="padding:8px">
+            <input type="file" id="incMailFile" class="session-input" style="padding:8px; width:100%">
           </div>
         </div>
       </div>
@@ -1209,16 +1255,6 @@
       }
     }
 
-    function insertTag(tag) {
-      var area = document.getElementById('incMailBody');
-      var start = area.selectionStart;
-      var end = area.selectionEnd;
-      var text = area.value;
-      area.value = text.substring(0, start) + tag + text.substring(end);
-      area.focus();
-      area.selectionStart = area.selectionEnd = start + tag.length;
-    }
-
     function updateIncidenciaCompleta() {
       var id = document.getElementById('incFacturaOriginal').value;
       if (!id) return;
@@ -1239,7 +1275,8 @@
         emailData: {
           to: document.getElementById('incMailTo').value,
           subject: document.getElementById('incMailSubject').value,
-          body: document.getElementById('incMailBody').value
+          body: document.getElementById('incMailBody').innerHTML,
+          inlineImages: extractInlineImages('incMailBody')
         }
       };
 
@@ -1630,8 +1667,167 @@
     }
     setupForm('formCliente',    'addCliente',    'modalCliente',    'btnSaveCliente', 'clientes', 'applyClienteFilters');
     setupForm('formPromesa',    'savePromesa',   'modalPromesa',    'btnSavePromesa', 'promesas', 'applyPromesaFilters');
-    setupForm('formIncidencia', 'saveIncidencia','modalIncidencia', 'btnSaveInc', 'incidencias', 'applyIncidenciaFilters');
+    // formIncidencia tiene submit custom (soporta correo con imágenes)
     setupForm('formLlamada',    'saveLlamada',   'modalLlamada',    'btnSaveCall', 'llamadas', 'applyLlamadaFilters');
+
+    // ═══════ INCIDENCIA CON CORREO INTEGRADO ═══════
+    (function() {
+      var form = document.getElementById('formIncidencia');
+      var btn = document.getElementById('btnSaveInc');
+      if (!form || !btn) return;
+      var origHTML = btn.innerHTML;
+
+      form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        btn.disabled = true;
+        btn.innerHTML = '<i data-lucide="loader"></i> Procesando...';
+        lucide.createIcons();
+
+        var fd = Object.fromEntries(new FormData(form));
+        if (currentUser) fd.interventor = currentUser.email;
+
+        var sendEmail = document.getElementById('newIncSendEmail').checked;
+        fd.sendEmail = sendEmail;
+
+        if (sendEmail) {
+          fd.emailData = {
+            to: document.getElementById('newIncMailTo').value,
+            subject: document.getElementById('newIncMailSubject').value,
+            body: document.getElementById('newIncMailBody').innerHTML
+          };
+
+          // Extraer imágenes inline como adjuntos embebidos
+          fd.emailData.inlineImages = extractInlineImages('newIncMailBody');
+
+          // Adjunto de archivo
+          var fileInput = document.getElementById('newIncMailFile');
+          if (fileInput.files.length > 0) {
+            var file = fileInput.files[0];
+            var reader = new FileReader();
+            reader.onload = function(ev) {
+              fd.emailData.attachment = {
+                content: ev.target.result.split(',')[1],
+                name: file.name,
+                mimeType: file.type
+              };
+              execSaveIncidencia(fd, btn, origHTML);
+            };
+            reader.readAsDataURL(file);
+            return;
+          }
+        }
+
+        execSaveIncidencia(fd, btn, origHTML);
+      });
+    })();
+
+    function execSaveIncidencia(fd, btn, origHTML) {
+      google.script.run
+        .withSuccessHandler(function(r) {
+          btn.disabled = false; btn.innerHTML = origHTML; lucide.createIcons();
+          if (r && r.success === false) { toast(r.message, 'error'); return; }
+          toast(r.message || 'Guardado');
+          closeModal('modalIncidencia');
+          // Reset email panel
+          document.getElementById('newIncSendEmail').checked = false;
+          toggleNewIncEmailPanel(false);
+          document.getElementById('newIncMailBody').innerHTML = '';
+
+          if (r.data) {
+            appData.incidencias.push(r.data);
+            applyIncidenciaFilters();
+            renderDashboard(appData);
+          } else {
+            loadAllData();
+          }
+        })
+        .withFailureHandler(function(err) {
+          btn.disabled = false; btn.innerHTML = origHTML; lucide.createIcons();
+          toast('Error: ' + err, 'error');
+        })
+        .saveIncidencia(fd);
+    }
+
+    // Toggle panel de correo en creación
+    function toggleNewIncEmailPanel(show) {
+      document.getElementById('newIncEmailPanel').style.display = show ? 'block' : 'none';
+      if (show) {
+        var cod = document.getElementById('selIncClienteVal').value;
+        var fact = document.querySelector('#formIncidencia [name="factura"]').value || 'S/N';
+        if (cod) {
+          var client = (appData.clientes || []).find(function(c) { return String(c[0]) === String(cod); });
+          if (client && client[3]) document.getElementById('newIncMailTo').value = client[3];
+          document.getElementById('newIncMailSubject').value = 'Seguimiento de Incidencia - Factura ' + fact + ' - ' + clienteName(cod);
+        }
+        lucide.createIcons();
+      }
+    }
+
+    // Auto-actualizar destinatario cuando cambie el cliente seleccionado
+    var _origHandleSearchSelect = handleSearchSelect;
+    handleSearchSelect = function(input, hiddenId) {
+      _origHandleSearchSelect(input, hiddenId);
+      // Si es el buscador de incidencia nueva y el email está activo, actualizar
+      if (hiddenId === 'selIncClienteVal' && document.getElementById('newIncSendEmail').checked) {
+        setTimeout(function() { toggleNewIncEmailPanel(true); }, 100);
+      }
+    };
+
+    // Insertar etiqueta dinámica en editor rich
+    function insertTagRich(editorId, tag) {
+      var editor = document.getElementById(editorId);
+      editor.focus();
+      var tagHtml = '<span class="email-dynamic-tag" contenteditable="false">' + tag + '</span>&nbsp;';
+      document.execCommand('insertHTML', false, tagHtml);
+    }
+
+    // Extraer imágenes inline del editor como base64
+    function extractInlineImages(editorId) {
+      var editor = document.getElementById(editorId);
+      var images = editor.querySelectorAll('img');
+      var inlineImages = [];
+      images.forEach(function(img, idx) {
+        var src = img.src;
+        if (src.startsWith('data:')) {
+          var parts = src.split(',');
+          var meta = parts[0]; // data:image/png;base64
+          var mimeMatch = meta.match(/data:(.*?);/);
+          var mimeType = mimeMatch ? mimeMatch[1] : 'image/png';
+          inlineImages.push({
+            id: 'img_' + idx,
+            content: parts[1],
+            mimeType: mimeType
+          });
+          // Reemplazar src con CID para email HTML
+          img.setAttribute('src', 'cid:img_' + idx);
+        }
+      });
+      return inlineImages;
+    }
+
+    // Soporte para pegar imágenes en editores contenteditable
+    document.addEventListener('paste', function(e) {
+      var target = e.target.closest('.rich-email-editor');
+      if (!target) return;
+
+      var items = (e.clipboardData || e.originalEvent.clipboardData).items;
+      for (var i = 0; i < items.length; i++) {
+        if (items[i].type.indexOf('image') !== -1) {
+          e.preventDefault();
+          var blob = items[i].getAsFile();
+          var reader = new FileReader();
+          reader.onload = function(ev) {
+            var img = document.createElement('img');
+            img.src = ev.target.result;
+            img.style.maxWidth = '100%';
+            target.focus();
+            document.execCommand('insertHTML', false, '<br>' + img.outerHTML + '<br>');
+          };
+          reader.readAsDataURL(blob);
+          return;
+        }
+      }
+    });
 
     // ═══════ ASISTENTE NLP MÁGICO V2 ═══════
     var magicParsedItems = [];

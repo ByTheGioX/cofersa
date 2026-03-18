@@ -313,13 +313,25 @@ function savePromesa(promesa) {
 
 function saveIncidencia(inc) {
   try {
-    var sheet = getDatabaseSheet().getSheetByName('Incidencias');
+    var ss = getDatabaseSheet();
+    var sheet = ss.getSheetByName('Incidencias');
     var id = 'INC-' + new Date().getTime();
     var now = new Date();
     var valMonto = cleanNum(inc.monto);
     var factura = String(inc.factura || '').toUpperCase().trim();
+    var linkGmail = String(inc.linkGmail || '');
 
-    // Esquema 9 cols: ID(0), CLIENTE_COD(1), FACTURA(2), MONTO(3), MOTIVO(4), ESTADO(5), CANAL(6), LINK_GMAIL(7), FECHA(8)
+    // Si se pidió enviar correo, procesarlo antes de guardar
+    if (inc.sendEmail && inc.emailData && inc.emailData.to) {
+      var emailLink = enviarCorreoIncidenciaConImagenes({
+        clienteCod: inc.clienteCod,
+        factura: factura,
+        emailData: inc.emailData
+      }, ss);
+      if (emailLink) linkGmail = emailLink;
+    }
+
+    // Esquema 10 cols: ID(0), CLIENTE_COD(1), FACTURA(2), MONTO(3), MOTIVO(4), ESTADO(5), CANAL(6), LINK_GMAIL(7), FECHA(8), INTERVENTOR(9)
     var row = [
       id,
       String(inc.clienteCod || ''),
@@ -328,12 +340,12 @@ function saveIncidencia(inc) {
       String(inc.motivo || '').trim(),
       'PENDIENTE',
       String(inc.canal || 'No definido').trim(),
-      String(inc.linkGmail || ''),
+      linkGmail,
       now,
       String(inc.interventor || 'SISTEMA')
     ];
     sheet.appendRow(row);
-    
+
     var rowUi = [
       id,
       String(inc.clienteCod || ''),
@@ -342,11 +354,16 @@ function saveIncidencia(inc) {
       String(inc.motivo || '').trim(),
       'PENDIENTE',
       String(inc.canal || 'No definido').trim(),
-      String(inc.linkGmail || ''),
+      linkGmail,
       now.toISOString(),
       String(inc.interventor || 'SISTEMA')
     ];
-    return { success: true, message: 'Incidencia registrada.', data: rowUi };
+
+    var msg = 'Incidencia registrada.';
+    if (inc.sendEmail && linkGmail) msg += ' Correo enviado con enlace de seguimiento.';
+    else if (inc.sendEmail) msg += ' Correo enviado (no se pudo obtener enlace).';
+
+    return { success: true, message: msg, data: rowUi };
   } catch (e) {
     return { success: false, message: e.message };
   }
@@ -695,9 +712,9 @@ function updateIncidenciaCompleta(data) {
 
     var newLink = data.link;
 
-    // 📧 PROCESAR CORREO SI ESTÁ MARCADO 💎
+    // Procesar correo si está marcado (usa versión con soporte de imágenes)
     if (data.sendEmail && data.emailData) {
-      newLink = enviarCorreoIncidencia(data, ss);
+      newLink = enviarCorreoIncidenciaConImagenes(data, ss);
     }
 
     // ID(0), CLIENTE_COD(1), FACTURA(2), MONTO(3), MOTIVO(4), ESTADO(5), CANAL(6), LINK_GMAIL(7), FECHA(8), INTERVENTOR(9)
@@ -766,6 +783,82 @@ function enviarCorreoIncidencia(data, ss) {
     console.error('Error enviando correo:', err);
   }
   
+  return '';
+}
+
+// Versión mejorada: soporta imágenes inline (pegadas en el editor)
+function enviarCorreoIncidenciaConImagenes(data, ss) {
+  var e = data.emailData;
+  var body = e.body;
+  var subject = e.subject;
+
+  // Reemplazar etiquetas mágicas
+  var clienteNombre = 'Cliente';
+  var clientes = ss.getSheetByName('Clientes').getDataRange().getValues();
+  for (var i = 1; i < clientes.length; i++) {
+    if (String(clientes[i][0]) === String(data.clienteCod)) {
+      clienteNombre = clientes[i][1];
+      break;
+    }
+  }
+
+  var hoy = new Date().toLocaleDateString('es-CR');
+
+  // Limpiar tags HTML de las etiquetas dinámicas (vienen como <span>)
+  body = body.replace(/<span[^>]*class="email-dynamic-tag"[^>]*>([^<]+)<\/span>/g, '$1');
+
+  body = body.replace(/\{\{CLIENTE\}\}/g, clienteNombre)
+             .replace(/\{\{FACTURA\}\}/g, data.factura || 'S/N')
+             .replace(/\{\{FECHA\}\}/g, hoy);
+
+  subject = subject.replace(/\{\{CLIENTE\}\}/g, clienteNombre)
+                   .replace(/\{\{FACTURA\}\}/g, data.factura || 'S/N')
+                   .replace(/\{\{FECHA\}\}/g, hoy);
+
+  var options = {
+    htmlBody: body,
+    cc: "jdiaz@cofersa.cr"
+  };
+
+  // Procesar imágenes inline (pegadas en el editor)
+  if (e.inlineImages && e.inlineImages.length > 0) {
+    var inlineImgs = {};
+    e.inlineImages.forEach(function(img) {
+      inlineImgs[img.id] = Utilities.newBlob(
+        Utilities.base64Decode(img.content),
+        img.mimeType,
+        img.id + '.' + (img.mimeType.split('/')[1] || 'png')
+      );
+    });
+    options.inlineImages = inlineImgs;
+  }
+
+  // Manejar adjunto de archivo si existe
+  if (e.attachment) {
+    var blob = Utilities.newBlob(
+      Utilities.base64Decode(e.attachment.content),
+      e.attachment.mimeType,
+      e.attachment.name
+    );
+    options.attachments = [blob];
+  }
+
+  try {
+    // Extraer texto plano del HTML para el body alternativo
+    var plainText = body.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').trim();
+    GmailApp.sendEmail(e.to, subject, plainText, options);
+
+    // Obtener enlace de seguimiento
+    Utilities.sleep(2000);
+    var threads = GmailApp.search('to:' + e.to + ' subject:"' + subject + '"', 0, 1);
+    if (threads && threads.length > 0) {
+      var lastMsg = threads[0].getMessages().pop();
+      return 'https://mail.google.com/mail/u/0/#search/rfc822msgid:' + lastMsg.getId();
+    }
+  } catch (err) {
+    console.error('Error enviando correo con imágenes:', err);
+  }
+
   return '';
 }
 

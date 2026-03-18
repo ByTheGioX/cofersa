@@ -676,4 +676,57 @@
   outline: none;
   box-shadow: 0 0 0 3px var(--accent-glow);
 }
+
+/* ═══════ RICH EMAIL EDITOR ═══════ */
+.rich-email-editor {
+  width: 100%;
+  min-height: 160px;
+  max-height: 350px;
+  overflow-y: auto;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px;
+  color: var(--text);
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  word-break: break-word;
+}
+.rich-email-editor:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(0, 174, 239, 0.15);
+}
+.rich-email-editor:empty::before {
+  content: attr(data-placeholder);
+  color: var(--muted);
+  pointer-events: none;
+  font-style: italic;
+}
+.rich-email-editor img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  margin: 8px 0;
+  border: 1px solid var(--border);
+}
+[data-theme="light"] .rich-email-editor {
+  background: #ffffff;
+  border: 1px solid #d0d7de;
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.03);
+}
+
+/* Tag de etiqueta dinámica dentro del editor */
+.email-dynamic-tag {
+  display: inline-block;
+  background: rgba(0, 174, 239, 0.12);
+  color: var(--accent);
+  padding: 1px 8px;
+  border-radius: 4px;
+  font-weight: 600;
+  font-size: 0.82rem;
+  border: 1px solid rgba(0, 174, 239, 0.25);
+}
 </style>
