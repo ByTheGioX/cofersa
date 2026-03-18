@@ -343,7 +343,8 @@ function saveIncidencia(inc) {
       'PENDIENTE',
       String(inc.canal || 'No definido').trim(),
       String(inc.linkGmail || ''),
-      now.toISOString()
+      now.toISOString(),
+      String(inc.interventor || 'SISTEMA')
     ];
     return { success: true, message: 'Incidencia registrada.', data: rowUi };
   } catch (e) {
@@ -383,7 +384,8 @@ function saveIncidenciaLocal(item, ss) {
     'PENDIENTE',
     String(item.canal || 'No definido').trim(),
     String(item.linkGmail || ''),
-    now.toISOString()
+    now.toISOString(),
+    String(item.interventor || 'SISTEMA')
   ];
 }
 
@@ -805,8 +807,9 @@ function deleteIncidencia(data) {
   try {
     var sheet = getDatabaseSheet().getSheetByName('Incidencias');
     var rows = sheet.getDataRange().getValues();
+    var searchId = String(data.id || data.factura); // Soportar ambos campos por compatibilidad
     for (var i = 1; i < rows.length; i++) {
-      if (String(rows[i][0]) === String(data.factura)) {
+      if (String(rows[i][0]) === searchId) {
         sheet.deleteRow(i + 1);
         return { success: true, message: 'Incidencia eliminada.' };
       }

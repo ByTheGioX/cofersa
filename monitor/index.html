@@ -912,6 +912,8 @@
       }).reduce(function(s, p) { return s + (Number(p[3]) || 0); }, 0);
       document.getElementById('statTotalMes').textContent = fmt(total);
 
+      document.getElementById('dPendientes').textContent = d.promesas.filter(function(p) { return (p[5]||'').toUpperCase() === 'PENDIENTE'; }).length;
+      document.getElementById('dParciales').textContent  = d.promesas.filter(function(p) { return (p[5]||'').toUpperCase() === 'ABONO PARCIAL'; }).length;
       document.getElementById('dCumplidas').textContent  = d.promesas.filter(function(p) { return (p[5]||'').toUpperCase() === 'CUMPLIÓ'; }).length;
 
       // Stats de Llamadas
@@ -1004,7 +1006,8 @@
       var filtered = appData.llamadas.filter(function(c) {
         if (!q) return true;
         var nombre = clienteName(c[2]).toLowerCase();
-        return nombre.indexOf(q) !== -1 || String(c[5]).toLowerCase().indexOf(q) !== -1;
+        var resultado = String(c[3]).toLowerCase();
+        return nombre.indexOf(q) !== -1 || resultado.indexOf(q) !== -1 || String(c[5]).toLowerCase().indexOf(q) !== -1;
       });
       renderLlamadas(filtered);
     }
@@ -1295,7 +1298,7 @@
       if (!confirm('¿Seguro que deseas eliminar esta incidencia? Las métricas cambiarán.')) return;
       toast('Eliminando...');
       
-      var payload = { factura: id }; 
+      var payload = { id: id };
       google.script.run
         .withSuccessHandler(function(r) {
           if(r && r.success) {
@@ -1520,13 +1523,6 @@
       }
     }
 
-    function clearSessionConfig() {
-      document.getElementById('sessionDate').value = '';
-      document.getElementById('sessionAmount').value = '';
-      document.getElementById('sessionNote').value = '';
-      toast('Configuración de sesión limpia');
-    }
-
     function deleteLlamada(id) {
       if (!confirm('¿Borrar registro de llamada?')) return;
       google.script.run.withSuccessHandler(function(r) {
@@ -1664,7 +1660,7 @@
 
         if (score > maxScore && score > 0) {
           maxScore = score;
-          bestMatch = { code: c[0], name: c[1] };
+          bestMatch = { code: c[0], name: c[1], matchedStr: cod.length > 0 && words.indexOf(cod) !== -1 ? c[0] : c[1] };
         }
       });
       return bestMatch;
@@ -2190,10 +2186,7 @@
       loadAllData();
     }, 5 * 60 * 1000);
 
-    // Inicialización al cargar la página
-    window.onload = function() {
-      loadAllData();
-    };
+    // Nota: window.onload ya definido arriba, no duplicar
   </script>
 </body>
 </html>
