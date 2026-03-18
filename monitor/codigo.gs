@@ -763,6 +763,27 @@ function updateLlamada(data) {
 }
 
 // ─── UPDATE ──────────────────────────────────────────────────────
+function updatePromesaCompleta(data) {
+  // data: { id, estado, monto, fechaPromesa, notas }
+  try {
+    var sheet = getDatabaseSheet().getSheetByName('Promesas');
+    var rows = sheet.getDataRange().getValues();
+    for (var i = 1; i < rows.length; i++) {
+      if (String(rows[i][0]) === String(data.id)) {
+        if (data.estado)       sheet.getRange(i + 1, 6).setValue(data.estado);
+        if (data.monto)        sheet.getRange(i + 1, 4).setValue(cleanNum(data.monto));
+        if (data.fechaPromesa) sheet.getRange(i + 1, 5).setValue(new Date(data.fechaPromesa));
+        if (data.notas !== undefined) sheet.getRange(i + 1, 7).setValue(data.notas);
+        var updated = sheet.getRange(i + 1, 1, 1, 8).getValues()[0];
+        return { success: true, message: 'Promesa actualizada.', data: updated };
+      }
+    }
+    return { success: false, message: 'Promesa no encontrada.' };
+  } catch (e) {
+    return { success: false, message: e.message };
+  }
+}
+
 function updatePromesaEstado(data) {
   try {
     var sheet = getDatabaseSheet().getSheetByName('Promesas');
@@ -1011,6 +1032,41 @@ function deleteIncidencia(data) {
       }
     }
     return { success: false, message: 'Incidencia no encontrada.' };
+  } catch (e) {
+    return { success: false, message: e.message };
+  }
+}
+
+function deleteCliente(data) {
+  try {
+    var sheet = getDatabaseSheet().getSheetByName('Clientes');
+    var rows = sheet.getDataRange().getValues();
+    for (var i = 1; i < rows.length; i++) {
+      if (String(rows[i][0]).toUpperCase() === String(data.codigo).toUpperCase()) {
+        sheet.deleteRow(i + 1);
+        return { success: true, message: 'Cliente eliminado.' };
+      }
+    }
+    return { success: false, message: 'Cliente no encontrado.' };
+  } catch (e) {
+    return { success: false, message: e.message };
+  }
+}
+
+function updateCliente(data) {
+  try {
+    var sheet = getDatabaseSheet().getSheetByName('Clientes');
+    var rows = sheet.getDataRange().getValues();
+    for (var i = 1; i < rows.length; i++) {
+      if (String(rows[i][0]).toUpperCase() === String(data.codigoOriginal).toUpperCase()) {
+        sheet.getRange(i + 1, 1).setValue(String(data.codigo || '').toUpperCase().trim());
+        sheet.getRange(i + 1, 2).setValue(String(data.nombre || '').trim());
+        sheet.getRange(i + 1, 3).setValue(String(data.telefono || '').trim());
+        sheet.getRange(i + 1, 4).setValue(String(data.correo || '').trim());
+        return { success: true, message: 'Cliente actualizado.', data: [data.codigo, data.nombre, data.telefono, data.correo] };
+      }
+    }
+    return { success: false, message: 'Cliente no encontrado.' };
   } catch (e) {
     return { success: false, message: e.message };
   }

@@ -4,7 +4,7 @@
   <base target="_top">
   <meta charset="UTF-8">
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-  <link rel="icon" type="image/svg+xml" id="dynamicFavicon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔵</text></svg>">
+  <link rel="icon" type="image/png" id="dynamicFavicon" href="https://drive.google.com/thumbnail?id=1j6goM4_yG8YBzIENEwGWQftRMEKuFMy-&sz=w64">
   <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
   <?!= include('Styles'); ?>
 </head>
@@ -13,7 +13,9 @@
   <!-- ═══════════ PANTALLA DE LOGIN ═══════════ -->
   <div id="loginOverlay" class="login-overlay">
     <div class="login-box">
-      <div class="login-logo">COFERSA</div>
+      <div class="login-logo">
+        <img src="https://drive.google.com/thumbnail?id=1XmzvQZyaD2LzK219czR9nDs73_IECw_7&sz=w300" alt="COFERSA" style="max-width:200px; height:auto;">
+      </div>
       <h2>Cobro Flow Pro</h2>
       <div class="form-group">
         <label>Correo Electrónico</label>
@@ -48,9 +50,7 @@
   <!-- ═══════════ SIDEBAR ═══════════ -->
   <div class="sidebar" id="mainSidebar" style="display:none">
     <div class="sidebar-logo">
-        <div id="imgLogoSidebar" style="font-size: 1.8rem; font-weight: 900; letter-spacing: -1px; color: var(--accent); text-align: center; line-height: 1;">
-          COFERSA
-        </div>
+        <img id="imgLogoSidebar" src="https://drive.google.com/thumbnail?id=1XmzvQZyaD2LzK219czR9nDs73_IECw_7&sz=w300" alt="COFERSA" style="max-width:160px; height:auto; border-radius:6px;">
     </div>
     <nav>
       <div class="nav-item active" onclick="showSection('dashboard', this)">
@@ -211,6 +211,7 @@
           <tbody id="tbIncidencias"></tbody>
         </table>
       </div>
+      <div id="pag-incidencias" class="pagination-bar"></div>
     </section>
 
     <!-- ── LLAMADAS ── -->
@@ -325,13 +326,14 @@
           </tbody>
         </table>
       </div>
+      <div id="pag-llamadas" class="pagination-bar"></div>
     </section>
 
     <!-- ── CLIENTES ── -->
     <section id="clientes" style="display:none">
       <div class="page-header">
         <h1>Directorio de Clientes</h1>
-        <button class="btn btn-green" onclick="openModal('modalCliente')"><i data-lucide="user-plus"></i> Nuevo Cliente</button>
+        <button class="btn btn-green" onclick="resetModalCliente(); openModal('modalCliente')"><i data-lucide="user-plus"></i> Nuevo Cliente</button>
       </div>
 
       <div class="toolbar">
@@ -343,9 +345,10 @@
 
       <div class="table-card">
         <table><thead><tr>
-          <th>Código</th><th>Nombre</th><th>Teléfono</th><th>Correo</th>
+          <th>Código</th><th>Nombre</th><th>Teléfono</th><th>Correo</th><th width="80" style="text-align:right">Acciones</th>
         </tr></thead><tbody id="tbodyClientes"></tbody></table>
       </div>
+      <div id="pag-clientes" class="pagination-bar"></div>
     </section>
 
   </div><!-- /main-wrapper -->
@@ -470,12 +473,13 @@
     </div>
   </div>
 
-  <!-- Modal: Nuevo Cliente -->
+  <!-- Modal: Nuevo / Editar Cliente -->
   <div class="modal-overlay" id="modalCliente">
     <div class="modal-box">
-      <h2 class="modal-title">Nuevo Cliente</h2>
+      <h2 class="modal-title" id="tituloModalCliente">Nuevo Cliente</h2>
+      <input type="hidden" id="clienteCodigoOriginal">
       <form id="formCliente">
-        <div class="form-group"><label>Código</label><input type="text" name="codigo" placeholder="Ej: C001" required></div>
+        <div class="form-group"><label>Código</label><input type="text" name="codigo" id="inputClienteCodigo" placeholder="Ej: C001" required></div>
         <div class="form-group"><label>Nombre</label><input type="text" name="nombre" placeholder="Nombre completo" required></div>
         <div class="form-group"><label>Teléfono</label><input type="tel" name="telefono" placeholder="8888-8888"></div>
         <div class="form-group"><label>Correo</label><input type="email" name="correo" placeholder="correo@empresa.com"></div>
@@ -494,15 +498,29 @@
       <div class="detail-grid" id="detPromGrid"></div>
       <hr class="divider">
       <div class="form-group">
-        <label>Cambiar Estado</label>
+        <label>Estado</label>
         <select id="detPromEstado">
           <option value="PENDIENTE">Pendiente</option>
           <option value="ABONO PARCIAL">Abono Parcial</option>
           <option value="CUMPLIÓ">Cumplió</option>
         </select>
       </div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px">
+        <div class="form-group">
+          <label>Monto (₡)</label>
+          <input type="text" inputmode="decimal" id="detPromMonto" placeholder="Ej: 50.000">
+        </div>
+        <div class="form-group">
+          <label>Fecha Promesa</label>
+          <input type="date" id="detPromFecha">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Notas</label>
+        <textarea id="detPromNotas" rows="2" placeholder="Observaciones..."></textarea>
+      </div>
       <div class="form-actions-row">
-        <button class="btn btn-accent" id="btnUpdateProm" onclick="doUpdatePromesa()"><i data-lucide="refresh-cw"></i> Actualizar</button>
+        <button class="btn btn-accent" id="btnUpdateProm" onclick="doUpdatePromesa()"><i data-lucide="save"></i> Guardar Cambios</button>
         <button class="btn btn-danger" id="btnDeleteProm" onclick="doDeletePromesa()"><i data-lucide="trash-2"></i> Eliminar</button>
       </div>
       <div class="form-actions" style="margin-top:12px">
@@ -698,6 +716,8 @@
     var promesaFilterState = 'TODOS';
     var incidenciaFilterState = 'TODOS';
     var callSort = { col: 1, dir: 'desc' }; // Por defecto fecha desc
+    var pagState = { incidencias: 1, clientes: 1, llamadas: 1 };
+    var PAGE_SIZE = 10;
 
     function doLogin() {
       var email = document.getElementById('loginEmail').value.trim();
@@ -728,6 +748,13 @@
             localStorage.setItem('cobroFlowUser', JSON.stringify(currentUser));
             document.getElementById('loginOverlay').style.display = 'none';
             document.getElementById('mainSidebar').style.display = 'flex';
+            // Aplicar fondo al logo en modo oscuro (por defecto)
+            var logo = document.getElementById('imgLogoSidebar');
+            if (document.body.getAttribute('data-theme') !== 'light') {
+              logo.style.background = 'white';
+              logo.style.borderRadius = '8px';
+              logo.style.padding = '6px 10px';
+            }
             loadAllData();
             toast('Bienvenido, ' + currentUser.nombre);
           } else {
@@ -1059,7 +1086,8 @@
       applyIncidenciaFilters();
     }
 
-    function applyIncidenciaFilters() {
+    function applyIncidenciaFilters(resetPage) {
+      if (resetPage !== false) pagState.incidencias = 1;
       var q = (document.getElementById('searchIncidencias')?.value || '').toLowerCase();
       var filtered = appData.incidencias.filter(function(inc) {
         var estado = (inc[5] || 'PENDIENTE').toUpperCase(); 
@@ -1076,7 +1104,8 @@
     }
 
     // ═══════ FILTROS: CLIENTES ═══════
-    function applyClienteFilters() {
+    function applyClienteFilters(resetPage) {
+      if (resetPage !== false) pagState.clientes = 1;
       var q = (document.getElementById('searchClientes')?.value || '').toLowerCase();
       var filtered = appData.clientes.filter(function(c) {
         if (!q) return true;
@@ -1088,6 +1117,7 @@
 
     // ═══════ FILTROS: LLAMADAS ═══════
     function applyLlamadaFilters() {
+      pagState.llamadas = 1;
       var q = (document.getElementById('searchLlamadas')?.value || '').toLowerCase();
       var filtered = appData.llamadas.filter(function(c) {
         if (!q) return true;
@@ -1118,10 +1148,20 @@
         var card = document.createElement('div');
         card.className = 'kanban-card';
         card.style.animationDelay = (i * 0.04) + 's';
+        card.draggable = true;
+        card.dataset.promId = p[0];
+        card.dataset.estado = estado;
+        card.addEventListener('dragstart', function(e) {
+          e.dataTransfer.setData('text/plain', p[0]);
+          e.dataTransfer.effectAllowed = 'move';
+          setTimeout(function() { card.classList.add('dragging'); }, 0);
+        });
+        card.addEventListener('dragend', function() { card.classList.remove('dragging'); });
         card.onclick = function() { openPromesaDetail(p); };
         card.innerHTML =
+          '<div class="k-drag-handle"><i data-lucide="grip-vertical"></i></div>' +
           '<div class="k-header">' +
-            '<div class="k-name" style="font-weight:800; color:var(--text); font-size:1rem">' + esc(nombre) + '</div>' + 
+            '<div class="k-name" style="font-weight:800; color:var(--text); font-size:1rem">' + esc(nombre) + '</div>' +
             '<div class="k-code" style="font-size:0.75rem; opacity:0.6; color:var(--accent)">' + esc(p[2]) + '</div>' +
           '</div>' +
           '<div class="k-amount" style="font-size:1.1rem; margin-top:8px">' + fmt(p[3]) + '</div>' +
@@ -1139,51 +1179,96 @@
       document.getElementById('badge-pendiente').textContent = counts['PENDIENTE'] || 0;
       document.getElementById('badge-parcial').textContent   = counts['ABONO PARCIAL'] || 0;
       document.getElementById('badge-cumplio').textContent   = counts['CUMPLIÓ'] || 0;
+
+      // Activar zonas de drop en columnas
+      var dropZones = [
+        { el: document.getElementById('list-pendiente'),  estado: 'PENDIENTE' },
+        { el: document.getElementById('list-parcial'),    estado: 'ABONO PARCIAL' },
+        { el: document.getElementById('list-cumplio'),    estado: 'CUMPLIÓ' }
+      ];
+      dropZones.forEach(function(zone) {
+        if (!zone.el) return;
+        zone.el.addEventListener('dragover', function(e) {
+          e.preventDefault();
+          e.dataTransfer.dropEffect = 'move';
+          zone.el.classList.add('drag-over');
+        });
+        zone.el.addEventListener('dragleave', function(e) {
+          if (!zone.el.contains(e.relatedTarget)) zone.el.classList.remove('drag-over');
+        });
+        zone.el.addEventListener('drop', function(e) {
+          e.preventDefault();
+          zone.el.classList.remove('drag-over');
+          var promId = e.dataTransfer.getData('text/plain');
+          var card = document.querySelector('[data-prom-id="' + promId + '"]');
+          if (!card || card.dataset.estado === zone.estado) return;
+          dropPromesaToColumn(promId, zone.estado);
+        });
+      });
+
       lucide.createIcons();
+    }
+
+    function dropPromesaToColumn(promId, newEstado) {
+      toast('Moviendo promesa...');
+      google.script.run.withSuccessHandler(function(r) {
+        if (r && r.success) {
+          var idx = appData.promesas.findIndex(function(x) { return String(x[0]) === String(promId); });
+          if (idx !== -1) appData.promesas[idx][5] = newEstado;
+          applyPromesaFilters();
+          renderDashboard(appData);
+          toast('Promesa movida a: ' + newEstado);
+        } else {
+          toast('Error al mover la promesa');
+        }
+      }).withFailureHandler(function() { toast('Error al mover la promesa'); })
+        .updatePromesaEstado({ id: promId, estado: newEstado, user: currentUser ? currentUser.email : '' });
     }
 
     // ═══════ DETALLE PROMESA ═══════
     function openPromesaDetail(p) {
       activePromesaId = p[0];
       var nombre = clienteName(p[2]);
-      
-      // Llenar modal de edición (Si quisiéramos editar campos, pero por ahora solo el estado)
-      // En la versión Pro, si quisiéramos cambiar el cliente, pondríamos:
-      // document.getElementById('searchDetPromCliente').value = nombre;
-      // document.getElementById('selDetPromClienteVal').value = p[2];
 
       var grid = document.getElementById('detPromGrid');
       grid.innerHTML =
         '<div class="detail-item"><label>Cliente</label><div class="val" style="font-weight:800; color:var(--accent)">' + esc(nombre) + '</div></div>' +
-        '<div class="detail-item"><label>Factura / Ref</label><div class="val">' + esc(p[2]) + '</div></div>' +
-        '<div class="detail-item"><label>Monto</label><div class="val" style="color:var(--accent)">' + fmt(p[3]) + '</div></div>' +
-        '<div class="detail-item"><label>Fecha Promesa</label><div class="val">' + fmtDate(p[4]) + '</div></div>' +
-        '<div class="detail-item full"><label>Historial / Notas</label><div class="val" style="font-size:0.85rem; color:var(--muted)">' + (p[6] || 'Sin notas extra') + '</div></div>';
+        '<div class="detail-item"><label>Código</label><div class="val" style="opacity:0.6">' + esc(p[2]) + '</div></div>';
 
       document.getElementById('detPromEstado').value = (p[5] || 'PENDIENTE');
+      document.getElementById('detPromMonto').value = p[3] ? String(p[3]) : '';
+      var fechaP = robustParseDate(p[4]);
+      document.getElementById('detPromFecha').value = fechaP ? fechaP.toISOString().split('T')[0] : '';
+      document.getElementById('detPromNotas').value = p[6] || '';
       openModal('modalDetPromesa');
     }
 
     function doUpdatePromesa() {
       if (!activePromesaId) return;
       var btn = document.getElementById('btnUpdateProm');
-      var newEstado = document.getElementById('detPromEstado').value;
       btn.disabled = true;
+      var payload = {
+        id:           activePromesaId,
+        estado:       document.getElementById('detPromEstado').value,
+        monto:        document.getElementById('detPromMonto').value,
+        fechaPromesa: document.getElementById('detPromFecha').value,
+        notas:        document.getElementById('detPromNotas').value
+      };
       google.script.run
         .withSuccessHandler(function(r) {
           btn.disabled = false;
-          if (r && r.success) { 
-            toast('Estado actualizado a ' + newEstado); 
-            closeModal('modalDetPromesa'); 
-            var p = appData.promesas.find(function(x) { return x[0] === activePromesaId; });
-            if (p) p[5] = newEstado;
+          if (r && r.success) {
+            toast('Promesa actualizada');
+            closeModal('modalDetPromesa');
+            var idx = appData.promesas.findIndex(function(x) { return String(x[0]) === String(activePromesaId); });
+            if (idx !== -1 && r.data) appData.promesas[idx] = r.data;
+            else if (idx !== -1) appData.promesas[idx][5] = payload.estado;
             applyPromesaFilters();
             renderDashboard(appData);
-          }
-          else toast(r.message || 'Error', 'error');
+          } else toast(r.message || 'Error', 'error');
         })
         .withFailureHandler(function(e) { btn.disabled = false; toast('Error: ' + e, 'error'); })
-        .updatePromesaEstado({ id: activePromesaId, estado: newEstado });
+        .updatePromesaCompleta(payload);
     }
 
     function doDeletePromesa() {
@@ -1208,16 +1293,83 @@
     }
 
     // ═══════ RENDER: INCIDENCIAS ═══════
+    function renderPagBar(containerId, table, totalItems, currentPage, onPageChange) {
+      var container = document.getElementById(containerId);
+      if (!container) return;
+      var totalPages = Math.ceil(totalItems / PAGE_SIZE);
+      if (totalPages <= 1) { container.innerHTML = ''; return; }
+      var start = (currentPage - 1) * PAGE_SIZE + 1;
+      var end = Math.min(currentPage * PAGE_SIZE, totalItems);
+      var html = '<div class="pag-info">' + start + '–' + end + ' de ' + totalItems + '</div><div class="pag-btns">';
+      html += '<button class="pag-btn" ' + (currentPage === 1 ? 'disabled' : 'onclick="' + onPageChange + '(' + (currentPage - 1) + ')"') + '><i data-lucide="chevron-left"></i></button>';
+      var from = Math.max(1, currentPage - 2);
+      var to = Math.min(totalPages, from + 4);
+      from = Math.max(1, to - 4);
+      for (var p = from; p <= to; p++) {
+        html += '<button class="pag-btn' + (p === currentPage ? ' active' : '') + '" onclick="' + onPageChange + '(' + p + ')">' + p + '</button>';
+      }
+      html += '<button class="pag-btn" ' + (currentPage === totalPages ? 'disabled' : 'onclick="' + onPageChange + '(' + (currentPage + 1) + ')"') + '><i data-lucide="chevron-right"></i></button>';
+      html += '</div>';
+      container.innerHTML = html;
+      lucide.createIcons();
+    }
+
+    function goPageIncidencias(p) { pagState.incidencias = p; applyIncidenciaFilters(); }
+    function goPageLlamadas(p)    { pagState.llamadas = p;    renderLlamadas(appData.llamadas); }
+    function goPageClientes(p)    { pagState.clientes = p;    applyClienteFilters(); }
+
+    function resetModalCliente() {
+      document.getElementById('tituloModalCliente').textContent = 'Nuevo Cliente';
+      document.getElementById('clienteCodigoOriginal').value = '';
+      document.getElementById('formCliente').reset();
+      var btn = document.getElementById('btnSaveCliente');
+      btn.innerHTML = '<i data-lucide="user-plus"></i> Guardar Cliente';
+      lucide.createIcons();
+    }
+
+    function openEditCliente(c) {
+      document.getElementById('tituloModalCliente').textContent = 'Editar Cliente';
+      document.getElementById('clienteCodigoOriginal').value = c[0];
+      var form = document.getElementById('formCliente');
+      form.querySelector('[name="codigo"]').value  = c[0] || '';
+      form.querySelector('[name="nombre"]').value  = c[1] || '';
+      form.querySelector('[name="telefono"]').value = c[2] || '';
+      form.querySelector('[name="correo"]').value  = c[3] || '';
+      var btn = document.getElementById('btnSaveCliente');
+      btn.innerHTML = '<i data-lucide="save"></i> Actualizar Cliente';
+      lucide.createIcons();
+      openModal('modalCliente');
+    }
+
+    function doDeleteCliente(codigo) {
+      if (!confirm('¿Eliminar el cliente "' + codigo + '"? Esta acción no se puede deshacer.')) return;
+      toast('Eliminando cliente...');
+      google.script.run.withSuccessHandler(function(r) {
+        if (r && r.success) {
+          appData.clientes = appData.clientes.filter(function(x) { return String(x[0]).toUpperCase() !== String(codigo).toUpperCase(); });
+          applyClienteFilters();
+          toast('Cliente eliminado');
+        } else { toast(r.message || 'Error', 'error'); }
+      }).withFailureHandler(function() { toast('Error al eliminar', 'error'); })
+        .deleteCliente({ codigo: codigo });
+    }
+
     function renderIncidencias(incidencias) {
       var tbody = document.getElementById('tbIncidencias');
       if (!tbody) return;
       tbody.innerHTML = '';
       if (incidencias.length === 0) {
         tbody.innerHTML = '<tr><td colspan="10" style="text-align:center; padding:40px; color:var(--muted)">Sin incidencias</td></tr>';
+        renderPagBar('pag-incidencias', 'incidencias', 0, 1, 'goPageIncidencias');
         return;
       }
-      
-      incidencias.forEach(function(inc) {
+      var totalPages = Math.ceil(incidencias.length / PAGE_SIZE);
+      if (pagState.incidencias > totalPages) pagState.incidencias = totalPages;
+      var start = (pagState.incidencias - 1) * PAGE_SIZE;
+      var page = incidencias.slice(start, start + PAGE_SIZE);
+      renderPagBar('pag-incidencias', 'incidencias', incidencias.length, pagState.incidencias, 'goPageIncidencias');
+
+      page.forEach(function(inc) {
         // Estructura inc: ID(0), CLIENTE_COD(1), FACTURA(2), MONTO(3), MOTIVO(4), ESTADO(5), CANAL(6), LINK_GMAIL(7), FECHA(8)
         var row = document.createElement('tr');
         var nombreCli = clienteName(inc[1]);
@@ -1236,6 +1388,11 @@
           canalHtml = '<div style="display:flex; align-items:center; gap:6px;"><i data-lucide="'+iconCanal+'" style="width:14px;height:14px;color:var(--accent)"></i> '+esc(inc[6])+'</div>';
         }
 
+        var isPendiente = (inc[5]||'').toUpperCase() !== 'RESUELTO';
+        var resolverBtn = isPendiente
+          ? '<button class="btn-mini btn-resolver" title="Marcar como Resuelto" onclick="event.stopPropagation(); quickResolveIncidencia(\''+inc[0]+'\')"><i data-lucide="check-circle"></i></button>'
+          : '<button class="btn-mini" title="Reabrir como Pendiente" onclick="event.stopPropagation(); quickResolveIncidencia(\''+inc[0]+'\', true)" style="opacity:0.4"><i data-lucide="rotate-ccw"></i></button>';
+
         row.innerHTML =
           '<td style="font-weight:700; color:var(--text)">' + esc(nombreCli) + ' <small style="display:block; font-weight:400; opacity:0.5; font-size:0.7rem">' + esc(inc[1]) + '</small></td>' +
           '<td style="font-weight:800; color:var(--accent)">' + esc(inc[2]) + '</td>' +
@@ -1245,7 +1402,7 @@
           '<td style="font-size:0.8rem; color:var(--muted)">' + fmtDate(inc[8]) + '</td>' +
           '<td>' + pill + '</td>' +
           '<td>' + linkHtml + '</td>' +
-          '<td><button class="btn-icon" title="Eliminar" onclick="event.stopPropagation(); deleteIncidencia(\''+inc[0]+'\')"><i data-lucide="trash-2"></i></button></td>';
+          '<td><div style="display:flex;gap:4px;justify-content:flex-end">' + resolverBtn + '<button class="btn-icon" title="Eliminar" onclick="event.stopPropagation(); deleteIncidencia(\''+inc[0]+'\')"><i data-lucide="trash-2"></i></button></div></td>';
         
         row.style.cursor = 'pointer';
         row.onclick = function() { openIncidenciaDetail(inc); };
@@ -1376,6 +1533,21 @@
         .updateIncidenciaCompleta(data);
     }
 
+    function quickResolveIncidencia(id, reopen) {
+      var nuevoEstado = reopen ? 'PENDIENTE' : 'RESUELTO';
+      toast('Actualizando...');
+      google.script.run.withSuccessHandler(function(r) {
+        if (r && r.success) {
+          var idx = appData.incidencias.findIndex(function(x) { return String(x[0]) === String(id); });
+          if (idx !== -1) appData.incidencias[idx][5] = nuevoEstado;
+          applyIncidenciaFilters(false);
+          renderDashboard(appData);
+          toast(reopen ? 'Incidencia reabierta' : 'Incidencia resuelta');
+        } else { toast('Error al actualizar', 'error'); }
+      }).withFailureHandler(function() { toast('Error al actualizar', 'error'); })
+        .updateIncidenciaCompleta({ id: id, estado: nuevoEstado });
+    }
+
     function deleteIncidencia(id) {
       if (!confirm('¿Seguro que deseas eliminar esta incidencia? Las métricas cambiarán.')) return;
       toast('Eliminando...');
@@ -1400,15 +1572,26 @@
       tbody.innerHTML = '';
       if (clientes.length === 0) {
         tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:40px; color:var(--muted)">Sin clientes</td></tr>';
+        renderPagBar('pag-clientes', 'clientes', 0, 1, 'goPageClientes');
         return;
       }
-      clientes.forEach(function(c) {
+      var totalPages = Math.ceil(clientes.length / PAGE_SIZE);
+      if (pagState.clientes > totalPages) pagState.clientes = totalPages;
+      var start = (pagState.clientes - 1) * PAGE_SIZE;
+      var page = clientes.slice(start, start + PAGE_SIZE);
+      renderPagBar('pag-clientes', 'clientes', clientes.length, pagState.clientes, 'goPageClientes');
+
+      page.forEach(function(c) {
         var row = document.createElement('tr');
         row.innerHTML =
           '<td style="font-weight:800; color:var(--accent)">' + esc(c[0]) + '</td>' +
           '<td style="font-weight:600">' + esc(c[1]) + '</td>' +
           '<td style="color:var(--muted)">' + esc(c[2] || '—') + '</td>' +
-          '<td style="color:var(--muted)">' + esc(c[3] || '—') + '</td>';
+          '<td style="color:var(--muted)">' + esc(c[3] || '—') + '</td>' +
+          '<td><div style="display:flex;gap:4px;justify-content:flex-end">' +
+            '<button class="btn-icon" title="Editar" onclick="openEditCliente(' + JSON.stringify(c) + ')"><i data-lucide="edit-3"></i></button>' +
+            '<button class="btn-icon danger" title="Eliminar" onclick="doDeleteCliente(\'' + esc(c[0]) + '\')"><i data-lucide="trash-2"></i></button>' +
+          '</div></td>';
         tbody.appendChild(row);
       });
     }
@@ -1453,9 +1636,10 @@
 
       if (list.length === 0) {
         tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:40px; color:var(--muted)">Sin gestiones registradas</td></tr>';
+        renderPagBar('pag-llamadas', 'llamadas', 0, 1, 'goPageLlamadas');
         return;
       }
-      
+
       var sorted = list.slice().sort(function(a, b) {
         var valA, valB;
         if (callSort.col === 0) { // Fecha
@@ -1476,7 +1660,13 @@
         return 0;
       });
 
-      sorted.forEach(function(c) {
+      var totalPages = Math.ceil(sorted.length / PAGE_SIZE);
+      if (pagState.llamadas > totalPages) pagState.llamadas = totalPages;
+      var startIdx = (pagState.llamadas - 1) * PAGE_SIZE;
+      var pageLlamadas = sorted.slice(startIdx, startIdx + PAGE_SIZE);
+      renderPagBar('pag-llamadas', 'llamadas', sorted.length, pagState.llamadas, 'goPageLlamadas');
+
+      pageLlamadas.forEach(function(c) {
         var res = String(c[3]).toUpperCase();
         var statusCls = 'info';
         if (res === 'CONTESTÓ') statusCls = 'success';
@@ -1503,7 +1693,7 @@
             '<div style="font-weight:700; color:var(--text)">' + esc(nombre) + '</div>' +
             '<div style="font-size:0.7rem; opacity:0.5">Cód: ' + esc(c[2]) + '</div>' +
           '</td>' +
-          '<td><span class="call-status ' + statusCls + '" style="cursor:pointer" onclick="toggleLlamadaStatus(\''+c[0]+'\', \''+res+'\')" title="Click para alternar estado">' + esc(c[3]) + '</span></td>' +
+          '<td><span class="call-status ' + statusCls + ' status-toggleable" onclick="toggleLlamadaStatus(\''+c[0]+'\', \''+res+'\')" title="Clic para cambiar estado">' + esc(c[3]) + ' <i data-lucide="refresh-cw" style="width:10px;height:10px;opacity:0.5;margin-left:3px;vertical-align:middle"></i></span></td>' +
           '<td style="font-size:0.9rem; max-width:250px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap" id="note-call-'+c[0]+'" title="'+esc(c[5])+'">' + 
              '<i data-lucide="user" style="width:12px; opacity:0.3; margin-right:4px"></i>' + esc(c[4]) + ': ' + (c[5] ? '"' + esc(c[5]) + '"' : '---') + 
           '</td>' +
@@ -1711,6 +1901,35 @@
       });
     }
     setupForm('formCliente',    'addCliente',    'modalCliente',    'btnSaveCliente', 'clientes', 'applyClienteFilters');
+
+    // Override del submit de cliente para soportar modo edición
+    (function() {
+      var form = document.getElementById('formCliente');
+      if (!form) return;
+      form.addEventListener('submit', function(e) {
+        var codigoOrig = document.getElementById('clienteCodigoOriginal').value;
+        if (!codigoOrig) return; // modo crear — setupForm lo maneja
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        var btn = document.getElementById('btnSaveCliente');
+        btn.disabled = true;
+        var fd = {};
+        new FormData(form).forEach(function(v, k) { fd[k] = v; });
+        fd.codigoOriginal = codigoOrig;
+        google.script.run.withSuccessHandler(function(r) {
+          btn.disabled = false;
+          if (r && r.success) {
+            var idx = appData.clientes.findIndex(function(x) { return String(x[0]).toUpperCase() === codigoOrig.toUpperCase(); });
+            if (idx !== -1) appData.clientes[idx] = r.data;
+            else appData.clientes.push(r.data);
+            closeModal('modalCliente');
+            applyClienteFilters();
+            toast('Cliente actualizado');
+          } else { toast(r.message || 'Error', 'error'); }
+        }).withFailureHandler(function(err) { btn.disabled = false; toast('Error: ' + err, 'error'); })
+          .updateCliente(fd);
+      });
+    })();
     setupForm('formPromesa',    'savePromesa',   'modalPromesa',    'btnSavePromesa', 'promesas', 'applyPromesaFilters');
     // formIncidencia tiene submit custom (soporta correo con imágenes)
     setupForm('formLlamada',    'saveLlamada',   'modalLlamada',    'btnSaveCall', 'llamadas', 'applyLlamadaFilters');
@@ -2165,12 +2384,16 @@
         body.removeAttribute('data-theme');
         btnIcon.setAttribute('data-lucide', 'sun');
         lbl.innerText = 'Modo Claro';
-        // logoSidebar.src = "URL DEL LOGO PARA FONDO OSCURO SI ES DISTINTO";
+        logoSidebar.style.background = 'white';
+        logoSidebar.style.borderRadius = '8px';
+        logoSidebar.style.padding = '6px 10px';
       } else {
         body.setAttribute('data-theme', 'light');
         btnIcon.setAttribute('data-lucide', 'moon');
         lbl.innerText = 'Modo Oscuro';
-        // logoSidebar.src = "URL DEL LOGO PARA FONDO CLARO SI ES DISTINTO";
+        logoSidebar.style.background = '';
+        logoSidebar.style.borderRadius = '';
+        logoSidebar.style.padding = '';
       }
       lucide.createIcons();
     }
